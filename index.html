@@ -215,8 +215,6 @@ canvas {
 <div class="app">
   <div class="left">
     <div class="toolbar">
-      <button class="btn" id="btnDoor" onclick="setMode('door')">🚪 <span id="t-door">出入り口を配置</span></button>
-      <button class="btn active" id="btnSeat" onclick="setMode('seat')">🪑 <span id="t-seat">座席を追加</span></button>
       <button class="btn btn-danger" onclick="clearSeats()" id="t-clear">座席クリア</button>
       <button class="btn btn-danger" onclick="resetAll()" id="t-reset">全リセット</button>
     </div>
@@ -276,7 +274,6 @@ const DW = 52;   // door opening width
 const SR = 20;   // seat radius
 
 // ── State ─────────────────────────────────────────────────────
-let mode = 'seat';
 let door = null;
 let seats = [];
 let lang = 'ja';
@@ -300,10 +297,10 @@ const T = {
     ranking:        '座席ランキング',
     rules:          'マナーのルール',
     ruleText:       '出入り口から<b style="color:#f87171">最も遠い席</b>が<b>上座</b>。目上の方や主賓が座ります。<br><br>出入り口に<b style="color:#60a5fa">最も近い席</b>が<b>下座</b>。幹事・接待側が座ります。',
-    hintNoDoor:     '部屋の枠線（壁）をクリックして出入り口を配置してください',
-    hintDoor:       '出入り口をドラッグして移動できます。壁をクリックして位置を変更することもできます',
-    hintSeat:       '部屋の中をクリックして座席を配置。ドラッグで移動、ダブルクリックで削除できます',
-    hintWarn:       '⚠️ 出入り口がまだ配置されていません！壁をクリックして出入り口を配置してください',
+    hintInit:       '壁をクリック → 出入り口を設置　／　部屋の中をクリック → 座席を追加',
+    hintHasDoor:    '部屋の中をクリックして座席を追加しましょう。ドラッグで移動、ダブルクリックで削除できます',
+    hintHasBoth:    'ドラッグで自由に移動、ダブルクリックで削除できます',
+    hintWarn:       '⚠️ 出入り口がまだありません。壁をクリックして設置してください',
     rankEmpty:      '座席を配置すると表示されます',
     rankNoDoor:     '出入り口を配置すると格順が決まります',
     rankSeat:       '番の席',
@@ -311,7 +308,7 @@ const T = {
     shimoza:        '下座',
     shareText:      (n) => n > 0 ? `上座・下座チェッカーで${n}席の配置を確認しました！` : '上座・下座チェッカー｜座席を配置するだけで上座・下座を自動判定！',
     welcomeLine1:   '① 壁をクリック → 出入り口を配置',
-    welcomeLine2:   '② 「座席を追加」→ 部屋の中をクリック',
+    welcomeLine2:   '② 部屋の中をクリック → 座席を追加',
     entranceLabel:  '出入口',
   },
   en: {
@@ -331,10 +328,10 @@ const T = {
     ranking:        'Seat Ranking',
     rules:          'Etiquette Rules',
     ruleText:       'The seat <b style="color:#f87171">farthest from the entrance</b> is <b>Kamiza</b> — for the most senior guest.<br><br>The seat <b style="color:#60a5fa">closest to the entrance</b> is <b>Shimoza</b> — for the host or organizer.',
-    hintNoDoor:     'Click on a wall to place the entrance',
-    hintDoor:       'Drag the entrance to move it, or click a wall to reposition',
-    hintSeat:       'Click inside the room to add seats. Drag to move, double-click to delete',
-    hintWarn:       '⚠️ No entrance placed yet! Click on a wall to place the entrance',
+    hintInit:       'Click a wall → Place entrance　／　Click inside → Add seat',
+    hintHasDoor:    'Click inside the room to add seats. Drag to move, double-click to delete',
+    hintHasBoth:    'Drag to move, double-click to delete',
+    hintWarn:       '⚠️ No entrance yet. Click on a wall to place it',
     rankEmpty:      'Place seats to see the ranking',
     rankNoDoor:     'Place the entrance to determine seat order',
     rankSeat:       '',
@@ -342,7 +339,7 @@ const T = {
     shimoza:        'Shimoza',
     shareText:      (n) => n > 0 ? `I checked ${n} seats with the Kamiza/Shimoza Checker!` : 'Kamiza/Shimoza Checker — Check Japanese seating etiquette instantly!',
     welcomeLine1:   '① Click a wall → Place entrance',
-    welcomeLine2:   '② Click "Add Seat" → Click inside the room',
+    welcomeLine2:   '② Click inside the room → Add seat',
     entranceLabel:  'Entrance',
   }
 };
@@ -357,8 +354,6 @@ function toggleLang() {
   document.getElementById('langBtn').textContent = lang === 'ja' ? 'EN' : 'JA';
   document.getElementById('t-title').textContent        = t('title');
   document.getElementById('t-subtitle').textContent     = t('subtitle');
-  document.getElementById('t-door').textContent         = t('door');
-  document.getElementById('t-seat').textContent         = t('seat');
   document.getElementById('t-clear').textContent        = t('clear');
   document.getElementById('t-reset').textContent        = t('reset');
   document.getElementById('t-share').textContent        = t('share');
@@ -404,20 +399,12 @@ function rankedSeats() {
   return arr.map((s, i) => ({ ...s, rank: i + 1, total: arr.length }));
 }
 
-// ── Mode / Actions ────────────────────────────────────────────
-function setMode(m) {
-  mode = m;
-  document.getElementById('btnDoor').classList.toggle('active', m === 'door');
-  document.getElementById('btnSeat').classList.toggle('active', m === 'seat');
-  updateHint();
-}
-
-function clearSeats() { seats = []; redraw(); updateRankList(); }
+// ── Actions ───────────────────────────────────────────────────
+function clearSeats() { seats = []; redraw(); updateRankList(); updateHint(); }
 
 function resetAll() {
   door = null; seats = [];
-  redraw(); updateRankList();
-  setMode('door');
+  redraw(); updateRankList(); updateHint();
 }
 
 function updateHint() {
@@ -428,11 +415,9 @@ function updateHint() {
     return;
   }
   el.classList.remove('warn');
-  if (mode === 'door') {
-    el.textContent = door ? t('hintDoor') : t('hintNoDoor');
-  } else {
-    el.textContent = t('hintSeat');
-  }
+  if (!door && seats.length === 0) el.textContent = t('hintInit');
+  else if (door && seats.length === 0) el.textContent = t('hintHasDoor');
+  else el.textContent = t('hintHasBoth');
 }
 
 // ── Input ─────────────────────────────────────────────────────
@@ -489,14 +474,12 @@ function moveDrag(e) {
   const seatHit = seats.some(s => Math.hypot(s.x - x, s.y - y) < SR + 6);
   if (seatHit || hitTestDoor(x, y)) {
     canvas.style.cursor = 'grab';
-  } else if (mode === 'door' && nearWall(x, y)) {
+  } else if (nearWall(x, y)) {
     canvas.style.cursor = 'pointer';
-  } else if (mode === 'seat') {
+  } else {
     const inRoom = x > RM.x + WW && x < RM.x + RM.w - WW &&
                    y > RM.y + WW && y < RM.y + RM.h - WW;
     canvas.style.cursor = inRoom ? 'crosshair' : 'default';
-  } else {
-    canvas.style.cursor = 'default';
   }
 }
 
@@ -510,8 +493,7 @@ function endDrag(e) {
 
   // ドラッグなし → クリックで配置
   const { x, y } = getCanvasPos(e);
-  if (mode === 'door') tryPlaceDoor(x, y);
-  else if (nearWall(x, y)) tryPlaceDoor(x, y);
+  if (nearWall(x, y)) tryPlaceDoor(x, y);
   else tryPlaceNewSeat(x, y);
   redraw(); updateRankList(); updateHint();
 }
