@@ -208,7 +208,6 @@ canvas {
 
 <div class="header">
   <h1 id="t-title">上座・下座 チェッカー</h1>
-  <p id="t-subtitle">出入り口と座席を配置して上座・下座を確認</p>
   <button class="btn" id="langBtn" onclick="toggleLang()" style="margin-top:6px;font-size:0.78rem;padding:4px 12px;">EN</button>
 </div>
 
@@ -273,7 +272,7 @@ const T = {
     hintHasDoor:    '部屋の中をクリックして座席を追加しましょう。ドラッグで移動、ダブルクリックで削除できます',
     hintHasBoth:    'ドラッグで自由に移動、ダブルクリックで削除できます',
     hintWarn:       '⚠️ 出入り口がまだありません。壁をクリックして設置してください',
-    rankEmpty:      '座席を配置すると表示されます',
+    rankEmpty:      '出入り口と座席を配置して上座・下座を確認',
     rankNoDoor:     '出入り口を配置すると格順が決まります',
     rankSeat:       '番の席',
     kamiza:         '上座',
@@ -304,7 +303,7 @@ const T = {
     hintHasDoor:    'Click inside the room to add seats. Drag to move, double-click to delete',
     hintHasBoth:    'Drag to move, double-click to delete',
     hintWarn:       '⚠️ No entrance yet. Click on a wall to place it',
-    rankEmpty:      'Place seats to see the ranking',
+    rankEmpty:      'Place the door and seats to check seat hierarchy',
     rankNoDoor:     'Place the entrance to determine seat order',
     rankSeat:       '',
     kamiza:         'Kamiza',
@@ -326,7 +325,6 @@ function toggleLang() {
   lang = lang === 'ja' ? 'en' : 'ja';
   document.getElementById('langBtn').textContent = lang === 'ja' ? 'EN' : 'JA';
   document.getElementById('t-title').textContent        = t('title');
-  document.getElementById('t-subtitle').textContent     = t('subtitle');
   document.getElementById('t-undo').textContent         = t('undo');
   document.getElementById('t-clear').textContent        = t('clear');
   document.getElementById('t-reset').textContent        = t('reset');
