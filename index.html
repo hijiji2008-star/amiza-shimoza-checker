@@ -511,6 +511,7 @@ function endDrag(e) {
   // ドラッグなし → クリックで配置
   const { x, y } = getCanvasPos(e);
   if (mode === 'door') tryPlaceDoor(x, y);
+  else if (nearWall(x, y)) tryPlaceDoor(x, y);
   else tryPlaceNewSeat(x, y);
   redraw(); updateRankList(); updateHint();
 }
