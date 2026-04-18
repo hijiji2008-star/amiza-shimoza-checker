@@ -215,6 +215,7 @@ canvas {
 <div class="app">
   <div class="left">
     <div class="toolbar">
+      <button class="btn" onclick="undo()" id="t-undo">↩ 戻る</button>
       <button class="btn btn-danger" onclick="clearSeats()" id="t-clear">座席クリア</button>
       <button class="btn btn-danger" onclick="resetAll()" id="t-reset">全リセット</button>
     </div>
@@ -269,6 +270,7 @@ const T = {
     ranking:        '座席ランキング',
     rules:          'マナーのルール',
     ruleText:       '出入り口から<b style="color:#f87171">最も遠い席</b>が<b>上座</b>。目上の方や主賓が座ります。<br><br>出入り口に<b style="color:#60a5fa">最も近い席</b>が<b>下座</b>。幹事・接待側が座ります。',
+    undo:           '↩ 戻る',
     hintInit:       '壁をクリック → 出入り口を設置　／　部屋の中をクリック → 座席を追加',
     hintHasDoor:    '部屋の中をクリックして座席を追加しましょう。ドラッグで移動、ダブルクリックで削除できます',
     hintHasBoth:    'ドラッグで自由に移動、ダブルクリックで削除できます',
@@ -311,6 +313,7 @@ const T = {
     shimoza:        'Shimoza',
     shareText:      (n) => n > 0 ? `I checked ${n} seats with the Kamiza/Shimoza Checker!` : 'Kamiza/Shimoza Checker — Check Japanese seating etiquette instantly!',
     welcomeLine1:   '① Click a wall → Place entrance',
+    undo:           '↩ Undo',
     welcomeLine2:   '② Click inside the room → Add seat',
     entranceLabel:  'Entrance',
   }
@@ -326,6 +329,7 @@ function toggleLang() {
   document.getElementById('langBtn').textContent = lang === 'ja' ? 'EN' : 'JA';
   document.getElementById('t-title').textContent        = t('title');
   document.getElementById('t-subtitle').textContent     = t('subtitle');
+  document.getElementById('t-undo').textContent         = t('undo');
   document.getElementById('t-clear').textContent        = t('clear');
   document.getElementById('t-reset').textContent        = t('reset');
   document.getElementById('t-share').textContent        = t('share');
@@ -340,6 +344,22 @@ function toggleLang() {
   updateRankList();
   redraw();
 }
+
+// ── History ───────────────────────────────────────────────────
+const history = [];
+function saveHistory() {
+  history.push({ door: door ? { ...door } : null, seats: seats.map(s => ({ ...s })) });
+  if (history.length > 50) history.shift();
+}
+function undo() {
+  if (!history.length) return;
+  const s = history.pop();
+  door = s.door; seats = s.seats;
+  redraw(); updateRankList(); updateHint();
+}
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); }
+});
 
 // ── Utilities ─────────────────────────────────────────────────
 function seatColor(rank, total) {
@@ -370,9 +390,10 @@ function rankedSeats() {
 }
 
 // ── Actions ───────────────────────────────────────────────────
-function clearSeats() { seats = []; redraw(); updateRankList(); updateHint(); }
+function clearSeats() { saveHistory(); seats = []; redraw(); updateRankList(); updateHint(); }
 
 function resetAll() {
+  saveHistory();
   door = null; seats = [];
   redraw(); updateRankList(); updateHint();
 }
@@ -416,11 +437,9 @@ function startDrag(e) {
   const { x, y } = getCanvasPos(e);
   dragMoved = false;
 
-  // 座席のドラッグ判定
   const idx = seats.findIndex(s => Math.hypot(s.x - x, s.y - y) < SR + 6);
   if (idx >= 0) { dragging = { type: 'seat', idx }; e.preventDefault(); return; }
 
-  // 出入り口のドラッグ判定
   if (hitTestDoor(x, y)) { dragging = { type: 'door' }; e.preventDefault(); return; }
 }
 
@@ -428,6 +447,7 @@ function moveDrag(e) {
   const { x, y } = getCanvasPos(e);
 
   if (dragging) {
+    if (!dragMoved) saveHistory(); // ドラッグ開始時に1回だけ保存
     dragMoved = true;
     e.preventDefault();
     if (dragging.type === 'seat') {
@@ -455,19 +475,14 @@ function moveDrag(e) {
 }
 
 function endDrag(e) {
-  if (dragging) {
-    dragging = null;
-    canvas.style.cursor = 'default';
-    return;
-  }
-  if (dragMoved) return;
-
   const { x, y } = getCanvasPos(e);
 
-  // タッチ時の二重タップ → 削除
-  if (e.changedTouches) {
+  // 二重タップ検出（draggingチェックより先）
+  if (e.changedTouches && !dragMoved) {
     const now = Date.now();
     if (now - lastTap.time < 350 && Math.hypot(x - lastTap.x, y - lastTap.y) < 30) {
+      dragging = null;
+      saveHistory();
       onDblClick(e);
       lastTap.time = 0;
       return;
@@ -475,6 +490,14 @@ function endDrag(e) {
     lastTap = { time: now, x, y };
   }
 
+  if (dragging) {
+    dragging = null;
+    canvas.style.cursor = 'default';
+    return;
+  }
+  if (dragMoved) return;
+
+  saveHistory();
   if (nearWall(x, y)) tryPlaceDoor(x, y);
   else tryPlaceNewSeat(x, y);
   redraw(); updateRankList(); updateHint();
@@ -482,10 +505,8 @@ function endDrag(e) {
 
 function onDblClick(e) {
   const { x, y } = getCanvasPos(e);
-  // 座席を削除
   const idx = seats.findIndex(s => Math.hypot(s.x - x, s.y - y) < SR + 6);
   if (idx >= 0) { seats.splice(idx, 1); redraw(); updateRankList(); return; }
-  // 出入り口を削除
   if (hitTestDoor(x, y)) { door = null; redraw(); updateRankList(); updateHint(); }
 }
 
