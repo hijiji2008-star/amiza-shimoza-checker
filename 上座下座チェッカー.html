@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>上座・下座チェッカー</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, system-ui, sans-serif;
+  background: #0d1117;
+  color: #e6e8ed;
+  min-height: 100vh;
+}
+
+.header {
+  background: #0d1117;
+  border-bottom: 1px solid #21262d;
+  padding: 16px 28px;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+.header h1 {
+  font-size: 1.3rem;
+  letter-spacing: 0.08em;
+  background: linear-gradient(90deg, #818cf8, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.header p { font-size: 0.82rem; color: #6b7280; }
+
+.app {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  max-width: 1060px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+}
+
+.left { flex: 1; min-width: 280px; }
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: 1px solid #30363d;
+  background: #161b22;
+  color: #c9d1d9;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: inherit;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+.btn:hover { background: #21262d; border-color: #6e7681; color: #e6edf3; }
+.btn.active {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 0 14px rgba(99,102,241,0.4);
+}
+.btn-danger { border-color: #3d1515; color: #f87171; }
+.btn-danger:hover { background: #2a1111; border-color: #f87171; }
+
+canvas {
+  display: block;
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  cursor: crosshair;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #21262d;
+}
+
+.hint-box {
+  margin-top: 10px;
+  padding: 8px 14px;
+  background: #161b22;
+  border-left: 3px solid #6366f1;
+  border-radius: 4px;
+  font-size: 0.81rem;
+  color: #8b949e;
+}
+
+.sidebar {
+  width: 215px;
+  min-width: 185px;
+}
+
+.card {
+  background: #161b22;
+  border: 1px solid #21262d;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+.card h2 {
+  font-size: 0.78rem;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #21262d;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.81rem;
+  color: #c9d1d9;
+}
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+#rankList { list-style: none; }
+.rank-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  font-size: 0.81rem;
+  color: #c9d1d9;
+}
+.rank-circle {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: bold;
+  font-size: 0.76rem;
+  color: white;
+  flex-shrink: 0;
+}
+.rank-tag {
+  font-weight: bold;
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: white;
+  margin-left: auto;
+  letter-spacing: 0.05em;
+}
+
+.rule-text {
+  font-size: 0.79rem;
+  color: #8b949e;
+  line-height: 1.85;
+}
+
+@media (max-width: 680px) {
+  .header { padding: 12px 16px; gap: 10px; }
+  .header h1 { font-size: 1.1rem; }
+  .app { padding: 12px; gap: 12px; flex-direction: column; }
+  .sidebar { width: 100%; min-width: unset; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .sidebar .card:last-child { grid-column: 1 / -1; }
+  .card { margin-bottom: 0; }
+  .toolbar { gap: 6px; }
+  .btn { padding: 7px 12px; font-size: 0.82rem; }
+}
+
+@media (max-width: 400px) {
+  .sidebar { grid-template-columns: 1fr; }
+  .sidebar .card:last-child { grid-column: unset; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>&#19978;&#24231;&#12539;&#19979;&#24231; &#12481;&#12455;&#12483;&#12459;&#12540;</h1>
+  <p>出入り口と座席を配置して上座・下座を確認</p>
+</div>
+
+<div class="app">
+  <div class="left">
+    <div class="toolbar">
+      <button class="btn active" id="btnDoor" onclick="setMode('door')">🚪 出入り口を配置</button>
+      <button class="btn" id="btnSeat" onclick="setMode('seat')">🪑 座席を追加</button>
+      <button class="btn btn-danger" onclick="clearSeats()">座席クリア</button>
+      <button class="btn btn-danger" onclick="resetAll()">全リセット</button>
+    </div>
+    <canvas id="c" width="640" height="460"></canvas>
+    <div class="hint-box" id="hint">壁（部屋の枠線）をクリックして出入り口を配置してください</div>
+  </div>
+
+  <div class="sidebar">
+    <div class="card">
+      <h2>凡例</h2>
+      <div class="legend-row">
+        <div class="legend-dot" style="background:#f87171"></div>
+        <span><b style="color:#f87171">上座</b>（最も格上の席）</span>
+      </div>
+      <div class="legend-row">
+        <div class="legend-dot" style="background:#fb923c"></div>
+        <span>中間席</span>
+      </div>
+      <div class="legend-row">
+        <div class="legend-dot" style="background:#60a5fa"></div>
+        <span><b style="color:#60a5fa">下座</b>（最も格下の席）</span>
+      </div>
+      <div class="legend-row" style="margin-top:8px">
+        <div style="width:10px;height:10px;background:#10b981;flex-shrink:0;border-radius:2px"></div>
+        <span>出入り口</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>座席ランキング</h2>
+      <ul id="rankList">
+        <li style="color:#aaa;font-size:0.81rem;padding:4px">座席を配置すると表示されます</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>マナーのルール</h2>
+      <p class="rule-text">
+        出入り口から<b style="color:#f87171">最も遠い席</b>が<b>上座</b>。目上の方や主賓が座ります。<br><br>
+        出入り口に<b style="color:#60a5fa">最も近い席</b>が<b>下座</b>。幹事・接待側が座ります。
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+// ── Layout constants ──────────────────────────────────────────
+const RM = { x: 55, y: 55, w: 530, h: 350 };
+const WW = 12;   // wall width
+const DW = 52;   // door opening width
+const SR = 20;   // seat radius
+
+// ── State ─────────────────────────────────────────────────────
+let mode = 'door';
+let door = null;   // { wall: 'top'|'bottom'|'left'|'right', frac: 0..1 }
+let seats = [];    // [{ x, y }]
+
+// ── Utilities ─────────────────────────────────────────────────
+function seatColor(rank, total) {
+  if (total <= 1) return 'hsl(0,72%,45%)';
+  const t = (rank - 1) / (total - 1); // 0 = kamiza (red), 1 = shimoza (blue)
+  const h = Math.round(t * 240);      // 0=red → 240=blue
+  const s = 72;
+  const l = 40 + t * 10;
+  return `hsl(${h},${s}%,${l}%)`;
+}
+
+function doorCenter() {
+  if (!door) return null;
+  const { wall, frac } = door;
+  if (wall === 'top')    return { x: RM.x + frac * RM.w, y: RM.y };
+  if (wall === 'bottom') return { x: RM.x + frac * RM.w, y: RM.y + RM.h };
+  if (wall === 'left')   return { x: RM.x,               y: RM.y + frac * RM.h };
+  /* right */            return { x: RM.x + RM.w,         y: RM.y + frac * RM.h };
+}
+
+function rankedSeats() {
+  if (seats.length === 0) return [];
+  const dc = doorCenter();
+  if (!dc) return seats.map((s, i) => ({ ...s, rank: i + 1, total: seats.length }));
+  const arr = seats.map(s => ({ ...s, dist: Math.hypot(s.x - dc.x, s.y - dc.y) }));
+  arr.sort((a, b) => b.dist - a.dist);  // furthest = rank 1 = kamiza
+  return arr.map((s, i) => ({ ...s, rank: i + 1, total: arr.length }));
+}
+
+// ── Mode / Actions ────────────────────────────────────────────
+function setMode(m) {
+  mode = m;
+  document.getElementById('btnDoor').classList.toggle('active', m === 'door');
+  document.getElementById('btnSeat').classList.toggle('active', m === 'seat');
+  updateHint();
+}
+
+function clearSeats() { seats = []; redraw(); updateRankList(); }
+
+function resetAll() {
+  door = null; seats = [];
+  redraw(); updateRankList();
+  setMode('door');
+}
+
+function updateHint() {
+  const el = document.getElementById('hint');
+  if (mode === 'door') {
+    el.textContent = door
+      ? '壁をクリックして出入り口の位置を変更できます'
+      : '部屋の枠線（壁）をクリックして出入り口を配置してください';
+  } else {
+    el.textContent = '部屋の中をクリックして座席を配置（座席をクリックすると削除）';
+  }
+}
+
+// ── Input ─────────────────────────────────────────────────────
+canvas.addEventListener('click', e => {
+  const r = canvas.getBoundingClientRect();
+  const sx = canvas.width / r.width;
+  const sy = canvas.height / r.height;
+  const x = (e.clientX - r.left) * sx;
+  const y = (e.clientY - r.top) * sy;
+
+  if (mode === 'door') tryPlaceDoor(x, y);
+  else tryPlaceSeat(x, y);
+
+  redraw();
+  updateRankList();
+  updateHint();
+});
+
+canvas.addEventListener('mousemove', e => {
+  const r = canvas.getBoundingClientRect();
+  const sx = canvas.width / r.width;
+  const sy = canvas.height / r.height;
+  const x = (e.clientX - r.left) * sx;
+  const y = (e.clientY - r.top) * sy;
+
+  if (mode === 'door') {
+    canvas.style.cursor = nearWall(x, y) ? 'pointer' : 'default';
+  } else {
+    const inRoom = x > RM.x + WW && x < RM.x + RM.w - WW &&
+                   y > RM.y + WW && y < RM.y + RM.h - WW;
+    canvas.style.cursor = inRoom ? 'crosshair' : 'default';
+  }
+});
+
+function nearWall(x, y) {
+  const HIT = 26;
+  return (Math.abs(y - RM.y) < HIT          && x >= RM.x - HIT && x <= RM.x + RM.w + HIT) ||
+         (Math.abs(y - (RM.y + RM.h)) < HIT && x >= RM.x - HIT && x <= RM.x + RM.w + HIT) ||
+         (Math.abs(x - RM.x) < HIT          && y >= RM.y - HIT && y <= RM.y + RM.h + HIT) ||
+         (Math.abs(x - (RM.x + RM.w)) < HIT && y >= RM.y - HIT && y <= RM.y + RM.h + HIT);
+}
+
+function tryPlaceDoor(x, y) {
+  const HIT = 26;
+  const candidates = [
+    { wall: 'top',    dist: Math.abs(y - RM.y),          along: x, min: RM.x, max: RM.x + RM.w, len: RM.w },
+    { wall: 'bottom', dist: Math.abs(y - (RM.y + RM.h)), along: x, min: RM.x, max: RM.x + RM.w, len: RM.w },
+    { wall: 'left',   dist: Math.abs(x - RM.x),          along: y, min: RM.y, max: RM.y + RM.h, len: RM.h },
+    { wall: 'right',  dist: Math.abs(x - (RM.x + RM.w)), along: y, min: RM.y, max: RM.y + RM.h, len: RM.h },
+  ].filter(c => c.dist < HIT && c.along >= c.min && c.along <= c.max);
+
+  if (candidates.length === 0) return;
+  candidates.sort((a, b) => a.dist - b.dist);
+  const c = candidates[0];
+  const hf = (DW / 2) / c.len;
+  const frac = Math.max(hf, Math.min(1 - hf, (c.along - c.min) / c.len));
+  door = { wall: c.wall, frac };
+}
+
+function tryPlaceSeat(x, y) {
+  const idx = seats.findIndex(s => Math.hypot(s.x - x, s.y - y) < SR + 4);
+  if (idx >= 0) { seats.splice(idx, 1); return; }
+
+  const pad = WW + SR + 3;
+  if (x > RM.x + pad && x < RM.x + RM.w - pad &&
+      y > RM.y + pad && y < RM.y + RM.h - pad) {
+    seats.push({ x, y });
+  }
+}
+
+// ── Drawing ───────────────────────────────────────────────────
+function redraw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBg();
+  drawFloor();
+  drawGrid();
+  drawWalls();
+  if (door) drawDoor();
+  drawSeats();
+  if (!door && seats.length === 0) drawWelcome();
+}
+
+function drawBg() {
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function drawFloor() {
+  ctx.fillStyle = '#161b22';
+  ctx.fillRect(RM.x, RM.y, RM.w, RM.h);
+}
+
+function drawGrid() {
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  const step = 44;
+  for (let x = RM.x + step; x < RM.x + RM.w; x += step) {
+    ctx.beginPath(); ctx.moveTo(x, RM.y); ctx.lineTo(x, RM.y + RM.h); ctx.stroke();
+  }
+  for (let y = RM.y + step; y < RM.y + RM.h; y += step) {
+    ctx.beginPath(); ctx.moveTo(RM.x, y); ctx.lineTo(RM.x + RM.w, y); ctx.stroke();
+  }
+}
+
+function wallSegs() {
+  const segs = [];
+  function add(wallName, x1, y1, x2, y2) {
+    if (!door || door.wall !== wallName) { segs.push([x1, y1, x2, y2]); return; }
+    const hw = DW / 2;
+    const { frac } = door;
+    if (wallName === 'top' || wallName === 'bottom') {
+      const cx = RM.x + frac * RM.w;
+      segs.push([RM.x, y1, cx - hw, y1]);
+      segs.push([cx + hw, y1, RM.x + RM.w, y1]);
+    } else {
+      const cy = RM.y + frac * RM.h;
+      segs.push([x1, RM.y, x1, cy - hw]);
+      segs.push([x1, cy + hw, x1, RM.y + RM.h]);
+    }
+  }
+  add('top',    RM.x,        RM.y,        RM.x + RM.w, RM.y);
+  add('right',  RM.x + RM.w, RM.y,        RM.x + RM.w, RM.y + RM.h);
+  add('bottom', RM.x,        RM.y + RM.h, RM.x + RM.w, RM.y + RM.h);
+  add('left',   RM.x,        RM.y,        RM.x,        RM.y + RM.h);
+  return segs;
+}
+
+function drawWalls() {
+  ctx.strokeStyle = '#30363d';
+  ctx.lineWidth = WW;
+  ctx.lineCap = 'square';
+  for (const [x1, y1, x2, y2] of wallSegs()) {
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+}
+
+function drawDoor() {
+  const dc = doorCenter();
+  const hw = DW / 2;
+  const { wall } = door;
+
+  // Cyan gap fill
+  ctx.fillStyle = '#10b981';
+  if (wall === 'top' || wall === 'bottom') {
+    ctx.fillRect(dc.x - hw, dc.y - WW / 2, DW, WW);
+  } else {
+    ctx.fillRect(dc.x - WW / 2, dc.y - hw, WW, DW);
+  }
+
+  // Arrow direction into room
+  let dx = 0, dy = 0;
+  if (wall === 'top')    { dy =  1; }
+  if (wall === 'bottom') { dy = -1; }
+  if (wall === 'left')   { dx =  1; }
+  if (wall === 'right')  { dx = -1; }
+
+  const startX = dc.x + dx * (WW / 2 + 4);
+  const startY = dc.y + dy * (WW / 2 + 4);
+  const arrowLen = 38;
+  const ex = startX + dx * arrowLen;
+  const ey = startY + dy * arrowLen;
+
+  ctx.strokeStyle = '#10b981';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(startX, startY);
+  ctx.lineTo(ex, ey);
+  ctx.stroke();
+
+  // Arrowhead
+  const ang = Math.atan2(ey - startY, ex - startX);
+  const aLen = 9;
+  ctx.fillStyle = '#10b981';
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(ex - aLen * Math.cos(ang - 0.42), ey - aLen * Math.sin(ang - 0.42));
+  ctx.lineTo(ex - aLen * Math.cos(ang + 0.42), ey - aLen * Math.sin(ang + 0.42));
+  ctx.closePath();
+  ctx.fill();
+
+  // "出入口" label (outside the room)
+  const labelGap = 18;
+  let lx = dc.x + (-dx) * labelGap;
+  let ly = dc.y + (-dy) * labelGap;
+
+  ctx.save();
+  ctx.font = 'bold 11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const tw = ctx.measureText('出入口').width + 10;
+  ctx.fillStyle = '#10b981';
+  rrect(ctx, lx - tw / 2, ly - 9, tw, 18, 4);
+  ctx.fill();
+  ctx.fillStyle = 'white';
+  ctx.fillText('出入口', lx, ly);
+  ctx.restore();
+}
+
+function drawSeats() {
+  const ranked = rankedSeats();
+
+  for (const s of ranked) {
+    const color = door ? seatColor(s.rank, s.total) : '#999';
+
+    // Outer ring for top/bottom
+    if (door && s.total >= 1 && (s.rank === 1 || s.rank === s.total)) {
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, SR + 5, 0, Math.PI * 2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    }
+
+    // Shadow
+    ctx.shadowColor = 'rgba(0,0,0,0.22)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 3;
+
+    // Seat circle
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, SR, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+
+    // Rank number
+    ctx.fillStyle = 'white';
+    ctx.font = `bold ${s.total > 9 ? 12 : 14}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(s.rank), s.x, s.y);
+
+    // 上座 / 下座 badge
+    if (door) {
+      if (s.rank === 1) {
+        seatLabel(s.x, s.y - SR - 8, '上座', color);
+      } else if (s.rank === s.total && s.total >= 2) {
+        seatLabel(s.x, s.y - SR - 8, '下座', color);
+      }
+    }
+  }
+}
+
+function seatLabel(cx, bottom, text, color) {
+  ctx.save();
+  ctx.font = 'bold 11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  const tw = ctx.measureText(text).width + 8;
+  const h = 16;
+  ctx.fillStyle = color;
+  rrect(ctx, cx - tw / 2, bottom - h, tw, h, 3);
+  ctx.fill();
+  ctx.fillStyle = 'white';
+  ctx.fillText(text, cx, bottom - 3);
+  ctx.restore();
+}
+
+function drawWelcome() {
+  ctx.fillStyle = 'rgba(139,148,158,0.5)';
+  ctx.font = '15px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('① 壁をクリック → 出入り口を配置', RM.x + RM.w / 2, RM.y + RM.h / 2 - 14);
+  ctx.fillText('② 「座席を追加」→ 部屋の中をクリック', RM.x + RM.w / 2, RM.y + RM.h / 2 + 14);
+}
+
+// Rounded rectangle path helper
+function rrect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+// ── Sidebar rank list ─────────────────────────────────────────
+function updateRankList() {
+  const list = document.getElementById('rankList');
+  const ranked = rankedSeats();
+
+  if (ranked.length === 0) {
+    list.innerHTML = '<li style="color:#aaa;font-size:0.81rem;padding:4px">座席を配置すると表示されます</li>';
+    return;
+  }
+  if (!door) {
+    list.innerHTML = '<li style="color:#aaa;font-size:0.81rem;padding:4px">出入り口を配置すると格順が決まります</li>';
+    return;
+  }
+
+  list.innerHTML = ranked.map(s => {
+    const color = seatColor(s.rank, s.total);
+    const isKamiza  = s.rank === 1;
+    const isShimoza = s.rank === s.total && s.total >= 2;
+    const tag = isKamiza
+      ? `<span class="rank-tag" style="background:${color}">上座</span>`
+      : isShimoza
+      ? `<span class="rank-tag" style="background:${color}">下座</span>`
+      : '';
+    return `
+      <li class="rank-row" style="background:${color}20">
+        <div class="rank-circle" style="background:${color}">${s.rank}</div>
+        <span>${s.rank}番の席</span>
+        ${tag}
+      </li>`;
+  }).join('');
+}
+
+// ── Init ──────────────────────────────────────────────────────
+redraw();
+updateHint();
+</script>
+</body>
+</html>
