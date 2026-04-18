@@ -207,57 +207,56 @@ canvas {
 <body>
 
 <div class="header">
-  <h1>&#19978;&#24231;&#12539;&#19979;&#24231; &#12481;&#12455;&#12483;&#12459;&#12540;</h1>
-  <p>出入り口と座席を配置して上座・下座を確認</p>
+  <h1 id="t-title">上座・下座 チェッカー</h1>
+  <p id="t-subtitle">出入り口と座席を配置して上座・下座を確認</p>
+  <button class="btn" id="langBtn" onclick="toggleLang()" style="margin-top:6px;font-size:0.78rem;padding:4px 12px;">EN</button>
 </div>
 
 <div class="app">
   <div class="left">
     <div class="toolbar">
-      <button class="btn active" id="btnDoor" onclick="setMode('door')">🚪 出入り口を配置</button>
-      <button class="btn" id="btnSeat" onclick="setMode('seat')">🪑 座席を追加</button>
-      <button class="btn btn-danger" onclick="clearSeats()">座席クリア</button>
-      <button class="btn btn-danger" onclick="resetAll()">全リセット</button>
+      <button class="btn active" id="btnDoor" onclick="setMode('door')">🚪 <span id="t-door">出入り口を配置</span></button>
+      <button class="btn" id="btnSeat" onclick="setMode('seat')">🪑 <span id="t-seat">座席を追加</span></button>
+      <button class="btn btn-danger" onclick="clearSeats()" id="t-clear">座席クリア</button>
+      <button class="btn btn-danger" onclick="resetAll()" id="t-reset">全リセット</button>
     </div>
-    <div class="hint-box" id="hint">壁（部屋の枠線）をクリックして出入り口を配置してください</div>
+    <div class="hint-box" id="hint"></div>
     <canvas id="c" width="640" height="460"></canvas>
     <div style="display:flex;gap:8px;margin-top:8px;">
-      <button class="btn btn-share" style="flex:1" onclick="shareToX()">𝕏 シェア</button>
-      <button class="btn btn-save" style="flex:1" onclick="saveImage()">💾 画像保存</button>
+      <button class="btn btn-share" style="flex:1" onclick="shareToX()" id="t-share">𝕏 シェア</button>
+      <button class="btn btn-save" style="flex:1" onclick="saveImage()" id="t-save">💾 画像保存</button>
     </div>
   </div>
 
   <div class="sidebar">
     <div class="card">
-      <h2>凡例</h2>
+      <h2 id="t-legend">凡例</h2>
       <div class="legend-row">
         <div class="legend-dot" style="background:#f87171"></div>
-        <span><b style="color:#f87171">上座</b>（最も格上の席）</span>
+        <span id="t-kamiza-legend"><b style="color:#f87171">上座</b>（最も格上の席）</span>
       </div>
       <div class="legend-row">
         <div class="legend-dot" style="background:#fb923c"></div>
-        <span>中間席</span>
+        <span id="t-middle-legend">中間席</span>
       </div>
       <div class="legend-row">
         <div class="legend-dot" style="background:#60a5fa"></div>
-        <span><b style="color:#60a5fa">下座</b>（最も格下の席）</span>
+        <span id="t-shimoza-legend"><b style="color:#60a5fa">下座</b>（最も格下の席）</span>
       </div>
       <div class="legend-row" style="margin-top:8px">
         <div style="width:10px;height:10px;background:#10b981;flex-shrink:0;border-radius:2px"></div>
-        <span>出入り口</span>
+        <span id="t-entrance-legend">出入り口</span>
       </div>
     </div>
 
     <div class="card">
-      <h2>座席ランキング</h2>
-      <ul id="rankList">
-        <li style="color:#aaa;font-size:0.81rem;padding:4px">座席を配置すると表示されます</li>
-      </ul>
+      <h2 id="t-ranking">座席ランキング</h2>
+      <ul id="rankList"></ul>
     </div>
 
     <div class="card">
-      <h2>マナーのルール</h2>
-      <p class="rule-text">
+      <h2 id="t-rules">マナーのルール</h2>
+      <p class="rule-text" id="t-rule-text">
         出入り口から<b style="color:#f87171">最も遠い席</b>が<b>上座</b>。目上の方や主賓が座ります。<br><br>
         出入り口に<b style="color:#60a5fa">最も近い席</b>が<b>下座</b>。幹事・接待側が座ります。
       </p>
@@ -281,8 +280,104 @@ const SR = 20;   // seat radius
 
 // ── State ─────────────────────────────────────────────────────
 let mode = 'door';
-let door = null;   // { wall: 'top'|'bottom'|'left'|'right', frac: 0..1 }
-let seats = [];    // [{ x, y }]
+let door = null;
+let seats = [];
+let lang = 'ja';
+
+// ── i18n ──────────────────────────────────────────────────────
+const T = {
+  ja: {
+    title:          '上座・下座 チェッカー',
+    subtitle:       '出入り口と座席を配置して上座・下座を確認',
+    door:           '出入り口を配置',
+    seat:           '座席を追加',
+    clear:          '座席クリア',
+    reset:          '全リセット',
+    share:          '𝕏 シェア',
+    save:           '💾 画像保存',
+    legend:         '凡例',
+    kamizaLegend:   '<b style="color:#f87171">上座</b>（最も格上の席）',
+    middleLegend:   '中間席',
+    shimozaLegend:  '<b style="color:#60a5fa">下座</b>（最も格下の席）',
+    entranceLegend: '出入り口',
+    ranking:        '座席ランキング',
+    rules:          'マナーのルール',
+    ruleText:       '出入り口から<b style="color:#f87171">最も遠い席</b>が<b>上座</b>。目上の方や主賓が座ります。<br><br>出入り口に<b style="color:#60a5fa">最も近い席</b>が<b>下座</b>。幹事・接待側が座ります。',
+    hintNoDoor:     '部屋の枠線（壁）をクリックして出入り口を配置してください',
+    hintDoor:       '出入り口をドラッグして移動できます。壁をクリックして位置を変更することもできます',
+    hintSeat:       '部屋の中をクリックして座席を配置。ドラッグで移動、ダブルクリックで削除できます',
+    hintWarn:       '⚠️ 出入り口がまだ配置されていません！壁をクリックして出入り口を配置してください',
+    rankEmpty:      '座席を配置すると表示されます',
+    rankNoDoor:     '出入り口を配置すると格順が決まります',
+    rankSeat:       '番の席',
+    kamiza:         '上座',
+    shimoza:        '下座',
+    shareText:      (n) => n > 0 ? `上座・下座チェッカーで${n}席の配置を確認しました！` : '上座・下座チェッカー｜座席を配置するだけで上座・下座を自動判定！',
+    welcomeLine1:   '① 壁をクリック → 出入り口を配置',
+    welcomeLine2:   '② 「座席を追加」→ 部屋の中をクリック',
+    entranceLabel:  '出入口',
+  },
+  en: {
+    title:          'Kamiza / Shimoza Checker',
+    subtitle:       'Place the door and seats to check seat hierarchy',
+    door:           'Place Door',
+    seat:           'Add Seat',
+    clear:          'Clear Seats',
+    reset:          'Reset All',
+    share:          '𝕏 Share',
+    save:           '💾 Save Image',
+    legend:         'Legend',
+    kamizaLegend:   '<b style="color:#f87171">Kamiza</b> (Seat of Honor)',
+    middleLegend:   'Middle Seat',
+    shimozaLegend:  '<b style="color:#60a5fa">Shimoza</b> (Lowest Seat)',
+    entranceLegend: 'Entrance',
+    ranking:        'Seat Ranking',
+    rules:          'Etiquette Rules',
+    ruleText:       'The seat <b style="color:#f87171">farthest from the entrance</b> is <b>Kamiza</b> — for the most senior guest.<br><br>The seat <b style="color:#60a5fa">closest to the entrance</b> is <b>Shimoza</b> — for the host or organizer.',
+    hintNoDoor:     'Click on a wall to place the entrance',
+    hintDoor:       'Drag the entrance to move it, or click a wall to reposition',
+    hintSeat:       'Click inside the room to add seats. Drag to move, double-click to delete',
+    hintWarn:       '⚠️ No entrance placed yet! Click on a wall to place the entrance',
+    rankEmpty:      'Place seats to see the ranking',
+    rankNoDoor:     'Place the entrance to determine seat order',
+    rankSeat:       '',
+    kamiza:         'Kamiza',
+    shimoza:        'Shimoza',
+    shareText:      (n) => n > 0 ? `I checked ${n} seats with the Kamiza/Shimoza Checker!` : 'Kamiza/Shimoza Checker — Check Japanese seating etiquette instantly!',
+    welcomeLine1:   '① Click a wall → Place entrance',
+    welcomeLine2:   '② Click "Add Seat" → Click inside the room',
+    entranceLabel:  'Entrance',
+  }
+};
+
+function t(key, ...args) {
+  const val = T[lang][key];
+  return typeof val === 'function' ? val(...args) : val;
+}
+
+function toggleLang() {
+  lang = lang === 'ja' ? 'en' : 'ja';
+  document.getElementById('langBtn').textContent = lang === 'ja' ? 'EN' : 'JA';
+  document.getElementById('t-title').textContent        = t('title');
+  document.getElementById('t-subtitle').textContent     = t('subtitle');
+  document.getElementById('t-door').textContent         = t('door');
+  document.getElementById('t-seat').textContent         = t('seat');
+  document.getElementById('t-clear').textContent        = t('clear');
+  document.getElementById('t-reset').textContent        = t('reset');
+  document.getElementById('t-share').textContent        = t('share');
+  document.getElementById('t-save').textContent         = t('save');
+  document.getElementById('t-legend').textContent       = t('legend');
+  document.getElementById('t-kamiza-legend').innerHTML  = t('kamizaLegend');
+  document.getElementById('t-middle-legend').textContent = t('middleLegend');
+  document.getElementById('t-shimoza-legend').innerHTML = t('shimozaLegend');
+  document.getElementById('t-entrance-legend').textContent = t('entranceLegend');
+  document.getElementById('t-ranking').textContent      = t('ranking');
+  document.getElementById('t-rules').textContent        = t('rules');
+  document.getElementById('t-rule-text').innerHTML      = t('ruleText');
+  updateHint();
+  updateRankList();
+  redraw();
+}
 
 // ── Utilities ─────────────────────────────────────────────────
 function seatColor(rank, total) {
@@ -331,17 +426,15 @@ function resetAll() {
 function updateHint() {
   const el = document.getElementById('hint');
   if (seats.length > 0 && !door) {
-    el.textContent = '⚠️ 出入り口がまだ配置されていません！壁をクリックして出入り口を配置してください';
+    el.textContent = t('hintWarn');
     el.classList.add('warn');
     return;
   }
   el.classList.remove('warn');
   if (mode === 'door') {
-    el.textContent = door
-      ? '出入り口をドラッグして移動できます。壁をクリックして位置を変更することもできます'
-      : '部屋の枠線（壁）をクリックして出入り口を配置してください';
+    el.textContent = door ? t('hintDoor') : t('hintNoDoor');
   } else {
-    el.textContent = '部屋の中をクリックして座席を配置。ドラッグで移動、ダブルクリックで削除できます';
+    el.textContent = t('hintSeat');
   }
 }
 
@@ -621,7 +714,7 @@ function drawDoor() {
   rrect(ctx, lx - tw / 2, ly - 9, tw, 18, 4);
   ctx.fill();
   ctx.fillStyle = 'white';
-  ctx.fillText('出入口', lx, ly);
+  ctx.fillText(t('entranceLabel'), lx, ly);
   ctx.restore();
 }
 
@@ -668,9 +761,9 @@ function drawSeats() {
     // 上座 / 下座 badge
     if (door) {
       if (s.rank === 1) {
-        seatLabel(s.x, s.y - SR - 8, '上座', color);
+        seatLabel(s.x, s.y - SR - 8, t('kamiza'), color);
       } else if (s.rank === s.total && s.total >= 2) {
-        seatLabel(s.x, s.y - SR - 8, '下座', color);
+        seatLabel(s.x, s.y - SR - 8, t('shimoza'), color);
       }
     }
   }
@@ -696,8 +789,8 @@ function drawWelcome() {
   ctx.font = '15px sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('① 壁をクリック → 出入り口を配置', RM.x + RM.w / 2, RM.y + RM.h / 2 - 14);
-  ctx.fillText('② 「座席を追加」→ 部屋の中をクリック', RM.x + RM.w / 2, RM.y + RM.h / 2 + 14);
+  ctx.fillText(t('welcomeLine1'), RM.x + RM.w / 2, RM.y + RM.h / 2 - 14);
+  ctx.fillText(t('welcomeLine2'), RM.x + RM.w / 2, RM.y + RM.h / 2 + 14);
 }
 
 // Rounded rectangle path helper
@@ -721,11 +814,11 @@ function updateRankList() {
   const ranked = rankedSeats();
 
   if (ranked.length === 0) {
-    list.innerHTML = '<li style="color:#aaa;font-size:0.81rem;padding:4px">座席を配置すると表示されます</li>';
+    list.innerHTML = `<li style="color:#aaa;font-size:0.81rem;padding:4px">${t('rankEmpty')}</li>`;
     return;
   }
   if (!door) {
-    list.innerHTML = '<li style="color:#aaa;font-size:0.81rem;padding:4px">出入り口を配置すると格順が決まります</li>';
+    list.innerHTML = `<li style="color:#aaa;font-size:0.81rem;padding:4px">${t('rankNoDoor')}</li>`;
     return;
   }
 
@@ -734,14 +827,15 @@ function updateRankList() {
     const isKamiza  = s.rank === 1;
     const isShimoza = s.rank === s.total && s.total >= 2;
     const tag = isKamiza
-      ? `<span class="rank-tag" style="background:${color}">上座</span>`
+      ? `<span class="rank-tag" style="background:${color}">${t('kamiza')}</span>`
       : isShimoza
-      ? `<span class="rank-tag" style="background:${color}">下座</span>`
+      ? `<span class="rank-tag" style="background:${color}">${t('shimoza')}</span>`
       : '';
+    const seatLabel = lang === 'ja' ? `${s.rank}番の席` : `Seat ${s.rank}`;
     return `
       <li class="rank-row" style="background:${color}20">
         <div class="rank-circle" style="background:${color}">${s.rank}</div>
-        <span>${s.rank}番の席</span>
+        <span>${seatLabel}</span>
         ${tag}
       </li>`;
   }).join('');
@@ -749,10 +843,7 @@ function updateRankList() {
 
 // ── Share / Save ──────────────────────────────────────────────
 function shareToX() {
-  const count = seats.length;
-  const text = count > 0
-    ? `上座・下座チェッカーで${count}席の配置を確認しました！出入り口から一番遠い席が上座です。`
-    : `上座・下座チェッカー｜座席を配置するだけで上座・下座を自動判定！`;
+  const text = t('shareText', seats.length);
   const url = 'https://amiza-shimoza-checker.vercel.app/';
   window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
 }
@@ -767,6 +858,7 @@ function saveImage() {
 // ── Init ──────────────────────────────────────────────────────
 redraw();
 updateHint();
+updateRankList();
 </script>
 </body>
 </html>
