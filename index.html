@@ -319,44 +319,116 @@ function updateHint() {
   const el = document.getElementById('hint');
   if (mode === 'door') {
     el.textContent = door
-      ? '壁をクリックして出入り口の位置を変更できます'
+      ? '出入り口をドラッグして移動できます。壁をクリックして位置を変更することもできます'
       : '部屋の枠線（壁）をクリックして出入り口を配置してください';
   } else {
-    el.textContent = '部屋の中をクリックして座席を配置（座席をクリックすると削除）';
+    el.textContent = '部屋の中をクリックして座席を配置。座席はドラッグで移動、クリックで削除できます';
   }
 }
 
 // ── Input ─────────────────────────────────────────────────────
-canvas.addEventListener('click', e => {
+let dragging = null; // { type: 'seat', idx } | { type: 'door' }
+let dragMoved = false;
+
+function getCanvasPos(e) {
   const r = canvas.getBoundingClientRect();
   const sx = canvas.width / r.width;
   const sy = canvas.height / r.height;
-  const x = (e.clientX - r.left) * sx;
-  const y = (e.clientY - r.top) * sy;
+  const src = e.touches ? e.touches[0] : e;
+  return {
+    x: (src.clientX - r.left) * sx,
+    y: (src.clientY - r.top) * sy,
+  };
+}
 
-  if (mode === 'door') tryPlaceDoor(x, y);
-  else tryPlaceSeat(x, y);
+function hitTestDoor(x, y) {
+  if (!door) return false;
+  const dc = doorCenter();
+  return Math.hypot(x - dc.x, y - dc.y) < DW;
+}
 
-  redraw();
-  updateRankList();
-  updateHint();
-});
+function startDrag(e) {
+  const { x, y } = getCanvasPos(e);
+  dragMoved = false;
 
-canvas.addEventListener('mousemove', e => {
-  const r = canvas.getBoundingClientRect();
-  const sx = canvas.width / r.width;
-  const sy = canvas.height / r.height;
-  const x = (e.clientX - r.left) * sx;
-  const y = (e.clientY - r.top) * sy;
+  // 座席のドラッグ判定
+  const idx = seats.findIndex(s => Math.hypot(s.x - x, s.y - y) < SR + 6);
+  if (idx >= 0) { dragging = { type: 'seat', idx }; e.preventDefault(); return; }
 
-  if (mode === 'door') {
-    canvas.style.cursor = nearWall(x, y) ? 'pointer' : 'default';
-  } else {
+  // 出入り口のドラッグ判定
+  if (hitTestDoor(x, y)) { dragging = { type: 'door' }; e.preventDefault(); return; }
+}
+
+function moveDrag(e) {
+  const { x, y } = getCanvasPos(e);
+
+  if (dragging) {
+    dragMoved = true;
+    e.preventDefault();
+    if (dragging.type === 'seat') {
+      const pad = WW + SR + 3;
+      seats[dragging.idx].x = Math.max(RM.x + pad, Math.min(RM.x + RM.w - pad, x));
+      seats[dragging.idx].y = Math.max(RM.y + pad, Math.min(RM.y + RM.h - pad, y));
+    } else if (dragging.type === 'door') {
+      snapDoorToWall(x, y);
+    }
+    redraw(); updateRankList();
+    return;
+  }
+
+  // カーソル更新
+  const seatHit = seats.some(s => Math.hypot(s.x - x, s.y - y) < SR + 6);
+  if (seatHit || hitTestDoor(x, y)) {
+    canvas.style.cursor = 'grab';
+  } else if (mode === 'door' && nearWall(x, y)) {
+    canvas.style.cursor = 'pointer';
+  } else if (mode === 'seat') {
     const inRoom = x > RM.x + WW && x < RM.x + RM.w - WW &&
                    y > RM.y + WW && y < RM.y + RM.h - WW;
     canvas.style.cursor = inRoom ? 'crosshair' : 'default';
+  } else {
+    canvas.style.cursor = 'default';
   }
-});
+}
+
+function endDrag(e) {
+  if (dragging) {
+    dragging = null;
+    canvas.style.cursor = 'default';
+    return;
+  }
+  if (dragMoved) return;
+
+  // ドラッグなし → クリック処理
+  const { x, y } = getCanvasPos(e);
+  if (mode === 'door') tryPlaceDoor(x, y);
+  else tryPlaceSeat(x, y);
+  redraw(); updateRankList(); updateHint();
+}
+
+function snapDoorToWall(x, y) {
+  const HIT = 60;
+  const candidates = [
+    { wall: 'top',    dist: Math.abs(y - RM.y),          along: x, min: RM.x, max: RM.x + RM.w, len: RM.w },
+    { wall: 'bottom', dist: Math.abs(y - (RM.y + RM.h)), along: x, min: RM.x, max: RM.x + RM.w, len: RM.w },
+    { wall: 'left',   dist: Math.abs(x - RM.x),          along: y, min: RM.y, max: RM.y + RM.h, len: RM.h },
+    { wall: 'right',  dist: Math.abs(x - (RM.x + RM.w)), along: y, min: RM.y, max: RM.y + RM.h, len: RM.h },
+  ];
+  candidates.sort((a, b) => a.dist - b.dist);
+  const c = candidates[0];
+  if (c.dist < HIT) {
+    const hf = (DW / 2) / c.len;
+    const frac = Math.max(hf, Math.min(1 - hf, (c.along - c.min) / c.len));
+    door = { wall: c.wall, frac };
+  }
+}
+
+canvas.addEventListener('mousedown', startDrag);
+canvas.addEventListener('mousemove', moveDrag);
+canvas.addEventListener('mouseup',   endDrag);
+canvas.addEventListener('touchstart', startDrag, { passive: false });
+canvas.addEventListener('touchmove',  moveDrag,  { passive: false });
+canvas.addEventListener('touchend',   endDrag);
 
 function nearWall(x, y) {
   const HIT = 26;
