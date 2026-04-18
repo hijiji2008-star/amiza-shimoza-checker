@@ -215,6 +215,7 @@ canvas {
 <div class="app">
   <div class="left">
     <div class="toolbar">
+      <button class="btn" onclick="alignSeats()" id="t-align">⊞ 整列</button>
       <button class="btn btn-danger" onclick="clearSeats()" id="t-clear">座席クリア</button>
       <button class="btn btn-danger" onclick="resetAll()" id="t-reset">全リセット</button>
     </div>
@@ -285,6 +286,7 @@ const T = {
     subtitle:       '出入り口と座席を配置して上座・下座を確認',
     door:           '出入り口を配置',
     seat:           '座席を追加',
+    align:          '⊞ 整列',
     clear:          '座席クリア',
     reset:          '全リセット',
     share:          '𝕏 シェア',
@@ -316,6 +318,7 @@ const T = {
     subtitle:       'Place the door and seats to check seat hierarchy',
     door:           'Place Door',
     seat:           'Add Seat',
+    align:          '⊞ Align',
     clear:          'Clear Seats',
     reset:          'Reset All',
     share:          '𝕏 Share',
@@ -354,6 +357,7 @@ function toggleLang() {
   document.getElementById('langBtn').textContent = lang === 'ja' ? 'EN' : 'JA';
   document.getElementById('t-title').textContent        = t('title');
   document.getElementById('t-subtitle').textContent     = t('subtitle');
+  document.getElementById('t-align').textContent        = t('align');
   document.getElementById('t-clear').textContent        = t('clear');
   document.getElementById('t-reset').textContent        = t('reset');
   document.getElementById('t-share').textContent        = t('share');
@@ -399,12 +403,54 @@ function rankedSeats() {
   return arr.map((s, i) => ({ ...s, rank: i + 1, total: arr.length }));
 }
 
+// ── Grid snap ─────────────────────────────────────────────────
+const SNAP = 44;
+function snapToGrid(x, y) {
+  const pad = WW + SR + 3;
+  const sx = RM.x + Math.round((x - RM.x) / SNAP) * SNAP;
+  const sy = RM.y + Math.round((y - RM.y) / SNAP) * SNAP;
+  return {
+    x: Math.max(RM.x + pad, Math.min(RM.x + RM.w - pad, sx)),
+    y: Math.max(RM.y + pad, Math.min(RM.y + RM.h - pad, sy)),
+  };
+}
+
 // ── Actions ───────────────────────────────────────────────────
 function clearSeats() { seats = []; redraw(); updateRankList(); updateHint(); }
 
 function resetAll() {
   door = null; seats = [];
   redraw(); updateRankList(); updateHint();
+}
+
+function alignSeats() {
+  if (seats.length === 0) return;
+  const n = seats.length;
+
+  // 部屋の縦横比に最も近いグリッドを探す（空席ペナルティあり）
+  let bestCols = n, bestRows = 1, bestScore = Infinity;
+  for (let c = 1; c <= n; c++) {
+    const r = Math.ceil(n / c);
+    const empty = r * c - n;
+    const score = Math.abs(c / r - RM.w / RM.h) + empty * 0.3;
+    if (score < bestScore) { bestScore = score; bestCols = c; bestRows = r; }
+  }
+
+  const pad = WW + SR + 16;
+  const areaW = RM.w - pad * 2;
+  const areaH = RM.h - pad * 2;
+
+  for (let i = 0; i < n; i++) {
+    const row = Math.floor(i / bestCols);
+    const col = i % bestCols;
+    const seatsInRow = (row === bestRows - 1) ? n - row * bestCols : bestCols;
+    const rowOffset = (bestCols - seatsInRow) / 2;
+
+    seats[i].x = RM.x + pad + (bestCols <= 1 ? areaW / 2 : (col + rowOffset) * areaW / (bestCols - 1));
+    seats[i].y = RM.y + pad + (bestRows <= 1 ? areaH / 2 : row * areaH / (bestRows - 1));
+  }
+
+  redraw(); updateRankList();
 }
 
 function updateHint() {
@@ -460,9 +506,9 @@ function moveDrag(e) {
     dragMoved = true;
     e.preventDefault();
     if (dragging.type === 'seat') {
-      const pad = WW + SR + 3;
-      seats[dragging.idx].x = Math.max(RM.x + pad, Math.min(RM.x + RM.w - pad, x));
-      seats[dragging.idx].y = Math.max(RM.y + pad, Math.min(RM.y + RM.h - pad, y));
+      const { x: sx, y: sy } = snapToGrid(x, y);
+      seats[dragging.idx].x = sx;
+      seats[dragging.idx].y = sy;
     } else if (dragging.type === 'door') {
       snapDoorToWall(x, y);
     }
@@ -558,11 +604,12 @@ function tryPlaceDoor(x, y) {
 }
 
 function tryPlaceNewSeat(x, y) {
-  if (seats.some(s => Math.hypot(s.x - x, s.y - y) < SR + 6)) return;
+  const { x: sx, y: sy } = snapToGrid(x, y);
+  if (seats.some(s => Math.hypot(s.x - sx, s.y - sy) < SR + 6)) return;
   const pad = WW + SR + 3;
-  if (x > RM.x + pad && x < RM.x + RM.w - pad &&
-      y > RM.y + pad && y < RM.y + RM.h - pad) {
-    seats.push({ x, y });
+  if (sx > RM.x + pad && sx < RM.x + RM.w - pad &&
+      sy > RM.y + pad && sy < RM.y + RM.h - pad) {
+    seats.push({ x: sx, y: sy });
   }
 }
 
