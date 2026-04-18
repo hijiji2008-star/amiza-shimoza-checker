@@ -322,7 +322,7 @@ function updateHint() {
       ? '出入り口をドラッグして移動できます。壁をクリックして位置を変更することもできます'
       : '部屋の枠線（壁）をクリックして出入り口を配置してください';
   } else {
-    el.textContent = '部屋の中をクリックして座席を配置。座席はドラッグで移動、クリックで削除できます';
+    el.textContent = '部屋の中をクリックして座席を配置。ドラッグで移動、ダブルクリックで削除できます';
   }
 }
 
@@ -399,11 +399,20 @@ function endDrag(e) {
   }
   if (dragMoved) return;
 
-  // ドラッグなし → クリック処理
+  // ドラッグなし → クリックで配置
   const { x, y } = getCanvasPos(e);
   if (mode === 'door') tryPlaceDoor(x, y);
-  else tryPlaceSeat(x, y);
+  else tryPlaceNewSeat(x, y);
   redraw(); updateRankList(); updateHint();
+}
+
+function onDblClick(e) {
+  const { x, y } = getCanvasPos(e);
+  // 座席を削除
+  const idx = seats.findIndex(s => Math.hypot(s.x - x, s.y - y) < SR + 6);
+  if (idx >= 0) { seats.splice(idx, 1); redraw(); updateRankList(); return; }
+  // 出入り口を削除
+  if (hitTestDoor(x, y)) { door = null; redraw(); updateRankList(); updateHint(); }
 }
 
 function snapDoorToWall(x, y) {
@@ -423,9 +432,10 @@ function snapDoorToWall(x, y) {
   }
 }
 
-canvas.addEventListener('mousedown', startDrag);
-canvas.addEventListener('mousemove', moveDrag);
-canvas.addEventListener('mouseup',   endDrag);
+canvas.addEventListener('mousedown',  startDrag);
+canvas.addEventListener('mousemove',  moveDrag);
+canvas.addEventListener('mouseup',    endDrag);
+canvas.addEventListener('dblclick',   onDblClick);
 canvas.addEventListener('touchstart', startDrag, { passive: false });
 canvas.addEventListener('touchmove',  moveDrag,  { passive: false });
 canvas.addEventListener('touchend',   endDrag);
@@ -455,10 +465,8 @@ function tryPlaceDoor(x, y) {
   door = { wall: c.wall, frac };
 }
 
-function tryPlaceSeat(x, y) {
-  const idx = seats.findIndex(s => Math.hypot(s.x - x, s.y - y) < SR + 4);
-  if (idx >= 0) { seats.splice(idx, 1); return; }
-
+function tryPlaceNewSeat(x, y) {
+  if (seats.some(s => Math.hypot(s.x - x, s.y - y) < SR + 6)) return;
   const pad = WW + SR + 3;
   if (x > RM.x + pad && x < RM.x + RM.w - pad &&
       y > RM.y + pad && y < RM.y + RM.h - pad) {
