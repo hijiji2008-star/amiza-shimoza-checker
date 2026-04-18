@@ -393,12 +393,13 @@ function updateHint() {
 // ── Input ─────────────────────────────────────────────────────
 let dragging = null; // { type: 'seat', idx } | { type: 'door' }
 let dragMoved = false;
+let lastTap = { time: 0, x: 0, y: 0 };
 
 function getCanvasPos(e) {
   const r = canvas.getBoundingClientRect();
   const sx = canvas.width / r.width;
   const sy = canvas.height / r.height;
-  const src = e.touches ? e.touches[0] : e;
+  const src = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]) || e;
   return {
     x: (src.clientX - r.left) * sx,
     y: (src.clientY - r.top) * sy,
@@ -461,8 +462,19 @@ function endDrag(e) {
   }
   if (dragMoved) return;
 
-  // ドラッグなし → クリックで配置
   const { x, y } = getCanvasPos(e);
+
+  // タッチ時の二重タップ → 削除
+  if (e.changedTouches) {
+    const now = Date.now();
+    if (now - lastTap.time < 350 && Math.hypot(x - lastTap.x, y - lastTap.y) < 30) {
+      onDblClick(e);
+      lastTap.time = 0;
+      return;
+    }
+    lastTap = { time: now, x, y };
+  }
+
   if (nearWall(x, y)) tryPlaceDoor(x, y);
   else tryPlaceNewSeat(x, y);
   redraw(); updateRankList(); updateHint();
