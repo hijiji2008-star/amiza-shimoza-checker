@@ -326,11 +326,9 @@ function toggleLang() {
   document.getElementById('langBtn').textContent = lang === 'ja' ? 'EN' : 'JA';
   document.getElementById('t-title').textContent        = t('title');
   document.getElementById('t-undo').textContent         = t('undo');
-  document.getElementById('t-clear').textContent        = t('clear');
   document.getElementById('t-reset').textContent        = t('reset');
   document.getElementById('t-share').textContent        = t('share');
   document.getElementById('t-save').textContent         = t('save');
-  document.getElementById('t-ranking').textContent      = t('ranking');
   updateHint();
   updateRankList();
   redraw();
