@@ -102,6 +102,14 @@ canvas {
   border-radius: 4px;
   font-size: 0.81rem;
   color: #8b949e;
+  transition: all 0.2s;
+}
+.hint-box.warn {
+  background: #2a1500;
+  border-left-color: #f97316;
+  color: #fdba74;
+  font-weight: bold;
+  box-shadow: 0 0 12px rgba(249,115,22,0.25);
 }
 
 .sidebar {
@@ -317,6 +325,12 @@ function resetAll() {
 
 function updateHint() {
   const el = document.getElementById('hint');
+  if (seats.length > 0 && !door) {
+    el.textContent = '⚠️ 出入り口がまだ配置されていません！壁をクリックして出入り口を配置してください';
+    el.classList.add('warn');
+    return;
+  }
+  el.classList.remove('warn');
   if (mode === 'door') {
     el.textContent = door
       ? '出入り口をドラッグして移動できます。壁をクリックして位置を変更することもできます'
