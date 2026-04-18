@@ -208,7 +208,7 @@ canvas {
 
 <div class="header">
   <h1 id="t-title">上座・下座 チェッカー</h1>
-  <button class="btn" id="langBtn" onclick="toggleLang()" style="margin-top:6px;font-size:0.78rem;padding:4px 12px;">EN</button>
+  <button class="btn" id="langBtn" onclick="toggleLang()" style="margin-top:6px;font-size:0.78rem;padding:4px 12px;">English</button>
 </div>
 
 <div class="app">
@@ -323,7 +323,7 @@ function t(key, ...args) {
 
 function toggleLang() {
   lang = lang === 'ja' ? 'en' : 'ja';
-  document.getElementById('langBtn').textContent = lang === 'ja' ? 'EN' : 'JA';
+  document.getElementById('langBtn').textContent = lang === 'ja' ? 'English' : '日本語';
   document.getElementById('t-title').textContent        = t('title');
   document.getElementById('t-undo').textContent         = t('undo');
   document.getElementById('t-reset').textContent        = t('reset');

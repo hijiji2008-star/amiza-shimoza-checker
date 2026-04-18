@@ -62,6 +62,14 @@ pushするだけでVercelが自動で公開してくれる。
 HTMLのUI要素を削除したら、`toggleLang()` 内の対応する `getElementById` の行も必ず同時に削除すること。
 残っているとJSエラーになりそれ以降の翻訳が止まる。
 
+現在 toggleLang() が参照している有効なID:
+`langBtn`, `t-title`, `t-undo`, `t-reset`, `t-share`, `t-save`
+
+## 残存デッドコードについて
+凡例・マナーのルールUI削除後、以下のコードが残存している（削除してよい）:
+- CSS: `.legend-row`, `.legend-dot`, `.rule-text`
+- JS翻訳キー: `legend`, `rules`, `ruleText`（JA/EN両オブジェクトに存在）
+
 ## 今後やりたいこと
 - タクシー・エレベーター・和室などのテンプレート追加
 - アクセスが月1,000超えたらGoogle AdSense申請
