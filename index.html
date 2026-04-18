@@ -215,11 +215,13 @@ canvas {
       <button class="btn" id="btnSeat" onclick="setMode('seat')">🪑 座席を追加</button>
       <button class="btn btn-danger" onclick="clearSeats()">座席クリア</button>
       <button class="btn btn-danger" onclick="resetAll()">全リセット</button>
-      <button class="btn btn-share" onclick="shareToX()">𝕏 シェア</button>
-      <button class="btn btn-save" onclick="saveImage()">💾 画像保存</button>
     </div>
     <canvas id="c" width="640" height="460"></canvas>
     <div class="hint-box" id="hint">壁（部屋の枠線）をクリックして出入り口を配置してください</div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button class="btn btn-share" style="flex:1" onclick="shareToX()">𝕏 シェア</button>
+      <button class="btn btn-save" style="flex:1" onclick="saveImage()">💾 画像保存</button>
+    </div>
   </div>
 
   <div class="sidebar">
