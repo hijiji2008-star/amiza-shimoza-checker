@@ -215,8 +215,8 @@ canvas {
 <div class="app">
   <div class="left">
     <div class="toolbar">
-      <button class="btn active" id="btnDoor" onclick="setMode('door')">🚪 <span id="t-door">出入り口を配置</span></button>
-      <button class="btn" id="btnSeat" onclick="setMode('seat')">🪑 <span id="t-seat">座席を追加</span></button>
+      <button class="btn" id="btnDoor" onclick="setMode('door')">🚪 <span id="t-door">出入り口を配置</span></button>
+      <button class="btn active" id="btnSeat" onclick="setMode('seat')">🪑 <span id="t-seat">座席を追加</span></button>
       <button class="btn btn-danger" onclick="clearSeats()" id="t-clear">座席クリア</button>
       <button class="btn btn-danger" onclick="resetAll()" id="t-reset">全リセット</button>
     </div>
@@ -276,7 +276,7 @@ const DW = 52;   // door opening width
 const SR = 20;   // seat radius
 
 // ── State ─────────────────────────────────────────────────────
-let mode = 'door';
+let mode = 'seat';
 let door = null;
 let seats = [];
 let lang = 'ja';
