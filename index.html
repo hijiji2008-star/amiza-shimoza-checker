@@ -79,6 +79,10 @@ body {
 }
 .btn-danger { border-color: #3d1515; color: #f87171; }
 .btn-danger:hover { background: #2a1111; border-color: #f87171; }
+.btn-share { border-color: #1d3a4a; color: #38bdf8; }
+.btn-share:hover { background: #0f2030; border-color: #38bdf8; }
+.btn-save { border-color: #1a3a1a; color: #4ade80; }
+.btn-save:hover { background: #0f2010; border-color: #4ade80; }
 
 canvas {
   display: block;
@@ -203,6 +207,8 @@ canvas {
       <button class="btn" id="btnSeat" onclick="setMode('seat')">🪑 座席を追加</button>
       <button class="btn btn-danger" onclick="clearSeats()">座席クリア</button>
       <button class="btn btn-danger" onclick="resetAll()">全リセット</button>
+      <button class="btn btn-share" onclick="shareToX()">𝕏 シェア</button>
+      <button class="btn btn-save" onclick="saveImage()">💾 画像保存</button>
     </div>
     <canvas id="c" width="640" height="460"></canvas>
     <div class="hint-box" id="hint">壁（部屋の枠線）をクリックして出入り口を配置してください</div>
@@ -636,6 +642,23 @@ function updateRankList() {
         ${tag}
       </li>`;
   }).join('');
+}
+
+// ── Share / Save ──────────────────────────────────────────────
+function shareToX() {
+  const count = seats.length;
+  const text = count > 0
+    ? `上座・下座チェッカーで${count}席の配置を確認しました！出入り口から一番遠い席が上座です。`
+    : `上座・下座チェッカー｜座席を配置するだけで上座・下座を自動判定！`;
+  const url = 'https://amiza-shimoza-checker.vercel.app/';
+  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+}
+
+function saveImage() {
+  const link = document.createElement('a');
+  link.download = '上座下座チェッカー.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
 }
 
 // ── Init ──────────────────────────────────────────────────────
