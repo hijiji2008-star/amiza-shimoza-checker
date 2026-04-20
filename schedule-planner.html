@@ -226,7 +226,7 @@ function addActivity() {
 
   const startMin = timeStrToMin(startEl.value);
   const endMin = timeStrToMin(endEl.value);
-  if (endMin <= startMin) { alert("終了時刻は開始時刻より後にしてください"); return; }
+  if (endMin <= startMin) { alert("終了時刻は開始時刻より後にしてください（日をまたぐ活動は分けて入力してください）"); return; }
 
   activities.push({ id: Date.now(), name, startMin, endMin, color: "" });
   reassignColors();
@@ -251,8 +251,13 @@ function saveToStorage() {
 }
 
 function loadFromStorage() {
-  const saved = localStorage.getItem("schedule-planner-v1");
-  if (saved) activities = JSON.parse(saved);
+  try {
+    const saved = localStorage.getItem("schedule-planner-v1");
+    if (saved) activities = JSON.parse(saved);
+  } catch (e) {
+    activities = [];
+    localStorage.removeItem("schedule-planner-v1");
+  }
 }
 
 function timeToAngle(totalMinutes, periodStart) {
