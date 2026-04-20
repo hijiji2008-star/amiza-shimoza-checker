@@ -226,7 +226,7 @@ function addActivity() {
 
   const startMin = timeStrToMin(startEl.value);
   const endMin = timeStrToMin(endEl.value);
-  if (endMin <= startMin) { alert("終了時刻は開始時刻より後にしてください（日をまたぐ活動は分けて入力してください）"); return; }
+  if (endMin === startMin) { alert("開始時刻と終了時刻が同じです"); return; }
 
   activities.push({ id: Date.now(), name, startMin, endMin, color: "" });
   reassignColors();
@@ -306,9 +306,10 @@ function drawBase(svgId, periodStart) {
     }
   }
 
-  const hasSeg = activities.some(a =>
-    periodStart === 0 ? a.startMin < 720 : a.endMin > 720
-  );
+  const hasSeg = activities.some(a => {
+    if (a.endMin < a.startMin) return true; // 日またぎは必ずAM・PM両方に存在
+    return periodStart === 0 ? a.startMin < 720 : a.endMin > 720;
+  });
   if (!hasSeg) {
     const hint = svgEl("text", {
       x: CX, y: CY,
@@ -326,44 +327,54 @@ function renderAll() {
   renderList();
 }
 
+function drawSeg(svg, a, actStart, actEnd, periodStart, periodEnd) {
+  const segStart = Math.max(actStart, periodStart);
+  const segEnd = Math.min(actEnd, periodEnd);
+  if (segEnd <= segStart) return;
+
+  const startAngle = timeToAngle(segStart, periodStart);
+  const endAngle = timeToAngle(segEnd, periodStart);
+  const large = endAngle - startAngle > 180 ? 1 : 0;
+
+  const outerStart = polarToXY(startAngle, R);
+  const outerEnd = polarToXY(endAngle, R);
+  const innerStart = polarToXY(startAngle, INNER_R);
+  const innerEnd = polarToXY(endAngle, INNER_R);
+
+  svg.appendChild(svgEl("path", {
+    d: `M ${outerStart.x} ${outerStart.y}
+        A ${R} ${R} 0 ${large} 1 ${outerEnd.x} ${outerEnd.y}
+        L ${innerEnd.x} ${innerEnd.y}
+        A ${INNER_R} ${INNER_R} 0 ${large} 0 ${innerStart.x} ${innerStart.y}
+        Z`,
+    fill: a.color, opacity: "0.9",
+  }));
+
+  const arcDeg = endAngle - startAngle;
+  if (arcDeg >= 15) {
+    const midAngle = (startAngle + endAngle) / 2;
+    const midPos = polarToXY(midAngle, (R + INNER_R) / 2);
+    const label = a.name.length > 6 ? a.name.slice(0, 5) + "…" : a.name;
+    const t = svgEl("text", {
+      x: midPos.x, y: midPos.y,
+      "text-anchor": "middle", "dominant-baseline": "middle",
+      fill: "#fff", "font-size": arcDeg >= 30 ? "10" : "8",
+      "font-family": "system-ui, sans-serif",
+      "pointer-events": "none",
+    });
+    t.textContent = label;
+    svg.appendChild(t);
+  }
+}
+
 function drawSegments(svg, periodStart, periodEnd) {
   activities.forEach(a => {
-    const segStart = Math.max(a.startMin, periodStart);
-    const segEnd = Math.min(a.endMin, periodEnd);
-    if (segEnd <= segStart) return;
-
-    const startAngle = timeToAngle(segStart, periodStart);
-    const endAngle = timeToAngle(segEnd, periodStart);
-    const large = endAngle - startAngle > 180 ? 1 : 0;
-
-    const outerStart = polarToXY(startAngle, R);
-    const outerEnd = polarToXY(endAngle, R);
-    const innerStart = polarToXY(startAngle, INNER_R);
-    const innerEnd = polarToXY(endAngle, INNER_R);
-
-    svg.appendChild(svgEl("path", {
-      d: `M ${outerStart.x} ${outerStart.y}
-          A ${R} ${R} 0 ${large} 1 ${outerEnd.x} ${outerEnd.y}
-          L ${innerEnd.x} ${innerEnd.y}
-          A ${INNER_R} ${INNER_R} 0 ${large} 0 ${innerStart.x} ${innerStart.y}
-          Z`,
-      fill: a.color, opacity: "0.9",
-    }));
-
-    const arcDeg = endAngle - startAngle;
-    if (arcDeg >= 15) {
-      const midAngle = (startAngle + endAngle) / 2;
-      const midPos = polarToXY(midAngle, (R + INNER_R) / 2);
-      const label = a.name.length > 6 ? a.name.slice(0, 5) + "…" : a.name;
-      const t = svgEl("text", {
-        x: midPos.x, y: midPos.y,
-        "text-anchor": "middle", "dominant-baseline": "middle",
-        fill: "#fff", "font-size": arcDeg >= 30 ? "10" : "8",
-        "font-family": "system-ui, sans-serif",
-        "pointer-events": "none",
-      });
-      t.textContent = label;
-      svg.appendChild(t);
+    if (a.endMin > a.startMin) {
+      drawSeg(svg, a, a.startMin, a.endMin, periodStart, periodEnd);
+    } else {
+      // 日またぎ: PM部分（startMin→1440）とAM部分（0→endMin）に分割
+      drawSeg(svg, a, a.startMin, 1440, periodStart, periodEnd);
+      drawSeg(svg, a, 0, a.endMin, periodStart, periodEnd);
     }
   });
 }
