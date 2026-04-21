@@ -18,8 +18,17 @@ def parse_job_cards(html: str, area: str, industry: str) -> list[dict]:
     results = []
 
     for card in soup.select("div.job_seen_beacon"):
-        company_tag = card.select_one("[data-testid='company-name']")
-        title_tag = card.select_one("h2.jobTitle a")
+        # Fallback chain: Indeed occasionally changes class/testid names
+        company_tag = (
+            card.select_one("[data-testid='company-name']") or
+            card.select_one(".companyName") or
+            card.select_one("[class*='company']")
+        )
+        title_tag = (
+            card.select_one("h2.jobTitle a") or
+            card.select_one("a.jcs-JobTitle") or
+            card.select_one("h2 a")
+        )
         if not company_tag or not title_tag:
             continue
 
