@@ -1,3 +1,6 @@
+import requests
+import time
+import random
 from bs4 import BeautifulSoup
 
 DISPATCH_KEYWORDS = [
@@ -38,3 +41,55 @@ def parse_job_cards(html: str, area: str, industry: str) -> list[dict]:
         })
 
     return results
+
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7",
+}
+
+def deduplicate(records: list[dict]) -> list[dict]:
+    seen = set()
+    result = []
+    for r in records:
+        if r["company"] not in seen:
+            seen.add(r["company"])
+            result.append(r)
+    return result
+
+def search_indeed(
+    areas: list[str],
+    industries: dict[str, str],
+    limit: int,
+) -> list[dict]:
+    all_results = []
+
+    for area in areas:
+        for industry_name, keyword in industries.items():
+            if len(all_results) >= limit:
+                break
+
+            print(f"🔍 {area} × {industry_name} を検索中...")
+            url = f"https://jp.indeed.com/jobs?q={keyword}&l={area}+東京都"
+
+            try:
+                resp = requests.get(url, headers=HEADERS, timeout=10)
+                resp.raise_for_status()
+                cards = parse_job_cards(resp.text, area, industry_name)
+                before = len(all_results)
+                all_results.extend(cards)
+                all_results = deduplicate(all_results)
+                print(f"   → {len(all_results) - before}件追加（累計 {len(all_results)}件）")
+
+            except requests.RequestException as e:
+                print(f"⚠️  エラー: {e}")
+                time.sleep(5)
+
+            time.sleep(random.uniform(1.0, 2.0))
+
+    result = all_results[:limit]
+    print(f"✅ 完了！{len(result)}件")
+    return result

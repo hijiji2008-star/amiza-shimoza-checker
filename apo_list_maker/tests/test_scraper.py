@@ -66,3 +66,25 @@ def test_parse_multi_filters_dispatch_only():
     results = parse_job_cards(SAMPLE_HTML_MULTI, "新宿区", "倉庫・物流")
     assert len(results) == 1
     assert results[0]["company"] == "株式会社田中倉庫"
+
+from scraper import deduplicate
+
+def test_deduplicate_removes_same_company():
+    records = [
+        {"company": "株式会社A", "area": "新宿区", "industry": "販売・小売", "indeed_url": "https://jp.indeed.com/1", "website": "—", "job_title": "販売"},
+        {"company": "株式会社A", "area": "渋谷区", "industry": "倉庫・物流", "indeed_url": "https://jp.indeed.com/2", "website": "—", "job_title": "倉庫"},
+        {"company": "株式会社B", "area": "新宿区", "industry": "販売・小売", "indeed_url": "https://jp.indeed.com/3", "website": "—", "job_title": "販売"},
+    ]
+    result = deduplicate(records)
+    assert len(result) == 2
+    companies = [r["company"] for r in result]
+    assert "株式会社A" in companies
+    assert "株式会社B" in companies
+
+def test_deduplicate_keeps_first_occurrence():
+    records = [
+        {"company": "株式会社A", "area": "新宿区", "industry": "販売・小売", "indeed_url": "https://jp.indeed.com/1", "website": "—", "job_title": "販売"},
+        {"company": "株式会社A", "area": "渋谷区", "industry": "倉庫・物流", "indeed_url": "https://jp.indeed.com/2", "website": "—", "job_title": "倉庫"},
+    ]
+    result = deduplicate(records)
+    assert result[0]["area"] == "新宿区"
