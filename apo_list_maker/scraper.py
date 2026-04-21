@@ -74,30 +74,47 @@ def search_indeed(
     industries: dict[str, str],
     limit: int,
 ) -> list[dict]:
+    from playwright.sync_api import sync_playwright
+
     all_results = []
 
-    for area in areas:
-        for industry_name, keyword in industries.items():
-            if len(all_results) >= limit:
-                break
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        context = browser.new_context(
+            user_agent=(
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            ),
+            locale="ja-JP",
+        )
+        page = context.new_page()
 
-            print(f"🔍 {area} × {industry_name} を検索中...")
-            url = f"https://jp.indeed.com/jobs?q={keyword}&l={area}+東京都"
+        for area in areas:
+            for industry_name, keyword in industries.items():
+                if len(all_results) >= limit:
+                    break
 
-            try:
-                resp = requests.get(url, headers=HEADERS, timeout=10)
-                resp.raise_for_status()
-                cards = parse_job_cards(resp.text, area, industry_name)
-                before = len(all_results)
-                all_results.extend(cards)
-                all_results = deduplicate(all_results)
-                print(f"   → {len(all_results) - before}件追加（累計 {len(all_results)}件）")
+                print(f"🔍 {area} × {industry_name} を検索中...")
+                url = f"https://jp.indeed.com/jobs?q={keyword}&l={area}+東京都"
 
-            except requests.RequestException as e:
-                print(f"⚠️  エラー: {e}")
-                time.sleep(5)
+                try:
+                    page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                    page.wait_for_timeout(3000)  # allow JS rendering
+                    html = page.content()
+                    cards = parse_job_cards(html, area, industry_name)
+                    before = len(all_results)
+                    all_results.extend(cards)
+                    all_results = deduplicate(all_results)
+                    added = len(all_results) - before
+                    print(f"   → {added}件追加（累計 {len(all_results)}件）")
 
-            time.sleep(random.uniform(1.0, 2.0))
+                except Exception as e:
+                    print(f"⚠️  エラー: {e}")
+
+                time.sleep(random.uniform(1.5, 3.0))
+
+        browser.close()
 
     result = all_results[:limit]
     print(f"✅ 完了！{len(result)}件")
