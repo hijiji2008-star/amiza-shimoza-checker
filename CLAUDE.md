@@ -74,3 +74,27 @@ HTMLのUI要素を削除したら、`toggleLang()` 内の対応する `getElemen
 - タクシー・エレベーター・和室などのテンプレート追加
 - アクセスが月1,000超えたらGoogle AdSense申請
 - 独自ドメイン取得（収益化が見えてきたら）
+
+---
+
+# アポリストメーカー（apo_list_maker/）
+
+派遣会社営業用アポデンリスト自動生成ツール。Indeed Japanをスクレイピングして求人掲載中の企業リストを生成。
+
+## ファイル構成
+- `app.py` — Flaskルート（port 5001）
+- `scraper.py` — Indeed検索・HTMLパース・フィルタリング・電話番号取得
+- `templates/index.html` — フォーム画面 + 結果テーブル
+- `tests/test_scraper.py` — スクレイピングロジックの単体テスト
+
+## 起動方法
+```bash
+cd apo_list_maker
+python3 app.py   # → http://localhost:5001
+```
+※ port 5000はmacOS AirPlay Receiverが使用中のため5001を使う
+
+## 開発上の注意
+- Playwright インストール: `python3 -m playwright install chromium`（`playwright` コマンドはPATHにない）
+- Indeed: `requests`は403。Playwrightで `wait_until="domcontentloaded"` + 3秒待機で動作
+- 電話番号取得: Yahoo Japan検索が動作。Google・iタウンページはPlaywrightでもブロックされる
