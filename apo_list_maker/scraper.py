@@ -1,6 +1,8 @@
 import requests
 import time
 import random
+import re
+import urllib.parse
 from bs4 import BeautifulSoup
 
 DISPATCH_KEYWORDS = [
@@ -37,7 +39,8 @@ def parse_job_cards(html: str, area: str, industry: str) -> list[dict]:
         href = title_tag.get("href", "")
         job_url = f"https://jp.indeed.com{href}" if href.startswith("/") else href
 
-        if is_dispatch(company_name, job_title):
+        card_text = card.get_text()
+        if is_dispatch(company_name, job_title) or "派遣社員" in card_text:
             continue
 
         results.append({
@@ -50,6 +53,20 @@ def parse_job_cards(html: str, area: str, industry: str) -> list[dict]:
         })
 
     return results
+
+PHONE_PATTERN = re.compile(r'0\d{1,4}[-−ー]\d{1,4}[-−ー]\d{4}')
+
+def lookup_phone_itp(company_name: str, page) -> str:
+    query = urllib.parse.quote(company_name)
+    url = f"https://itp.ne.jp/search/list/?sf=1&sk={query}&af=13"
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=15000)
+        page.wait_for_timeout(1500)
+        text = page.inner_text("body")
+        match = PHONE_PATTERN.search(text)
+        return match.group() if match else "—"
+    except Exception:
+        return "—"
 
 HEADERS = {
     "User-Agent": (
@@ -88,8 +105,9 @@ def search_indeed(
             ),
             locale="ja-JP",
         )
-        page = context.new_page()
+        indeed_page = context.new_page()
 
+        # Phase 1: Collect companies from Indeed
         for area in areas:
             for industry_name, keyword in industries.items():
                 if len(all_results) >= limit:
@@ -99,23 +117,30 @@ def search_indeed(
                 url = f"https://jp.indeed.com/jobs?q={keyword}&l={area}+東京都"
 
                 try:
-                    page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                    page.wait_for_timeout(3000)  # allow JS rendering
-                    html = page.content()
+                    indeed_page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                    indeed_page.wait_for_timeout(3000)
+                    html = indeed_page.content()
                     cards = parse_job_cards(html, area, industry_name)
                     before = len(all_results)
                     all_results.extend(cards)
                     all_results = deduplicate(all_results)
                     added = len(all_results) - before
                     print(f"   → {added}件追加（累計 {len(all_results)}件）")
-
                 except Exception as e:
                     print(f"⚠️  エラー: {e}")
 
                 time.sleep(random.uniform(1.5, 3.0))
 
+        result = all_results[:limit]
+
+        # Phase 2: Look up phone numbers from iタウンページ
+        phone_page = context.new_page()
+        for i, r in enumerate(result):
+            print(f"📞 電話番号を検索中... ({i+1}/{len(result)}) {r['company']}")
+            r["phone"] = lookup_phone_itp(r["company"], phone_page)
+            time.sleep(random.uniform(0.5, 1.0))
+
         browser.close()
 
-    result = all_results[:limit]
     print(f"✅ 完了！{len(result)}件")
     return result

@@ -88,3 +88,16 @@ def test_deduplicate_keeps_first_occurrence():
     ]
     result = deduplicate(records)
     assert result[0]["area"] == "新宿区"
+
+def test_parse_excludes_haken_shauin_employment_type():
+    html = """
+    <html><body>
+    <div class="job_seen_beacon">
+      <h2 class="jobTitle"><a class="jcs-JobTitle" href="/rc/clk?jk=ccc333"><span>倉庫スタッフ</span></a></h2>
+      <span data-testid="company-name">株式会社ふつうの会社</span>
+      <div>雇用形態: 派遣社員</div>
+    </div>
+    </body></html>
+    """
+    results = parse_job_cards(html, "新宿区", "倉庫・物流")
+    assert results == []

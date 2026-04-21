@@ -96,6 +96,7 @@
             <th>会社名</th>
             <th>業種</th>
             <th>エリア</th>
+            <th>電話番号</th>
             <th>公式HP</th>
             <th>Indeed掲載ページ</th>
             <th>求人タイトル</th>
@@ -108,6 +109,7 @@
             <td>{{ r.company }}</td>
             <td>{{ r.industry }}</td>
             <td>{{ r.area }}</td>
+            <td>{{ r.phone }}</td>
             <td>{% if r.website != '—' %}<a href="{{ r.website }}" target="_blank">{{ r.website }}</a>{% else %}—{% endif %}</td>
             <td><a href="{{ r.indeed_url }}" target="_blank">Indeedを見る</a></td>
             <td>{{ r.job_title }}</td>
