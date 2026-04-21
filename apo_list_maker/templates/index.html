@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>アポリストメーカー</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0d1117; color: #e6edf3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+    header { background: #161b22; border-bottom: 1px solid #30363d; padding: 16px 24px; }
+    header h1 { font-size: 20px; font-weight: 700; background: linear-gradient(90deg, #818cf8, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    main { max-width: 1000px; margin: 32px auto; padding: 0 24px; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 24px; margin-bottom: 24px; }
+    .card h2 { font-size: 15px; color: #8b949e; margin-bottom: 16px; text-transform: uppercase; letter-spacing: .05em; }
+    .ward-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+    .industry-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+    label.checkbox { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-size: 13px; transition: border-color .15s; }
+    label.checkbox:hover { border-color: #818cf8; }
+    label.checkbox input[type=checkbox]:checked + span { color: #38bdf8; }
+    label.checkbox input[type=checkbox]:checked { accent-color: #818cf8; }
+    .controls { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
+    select { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; padding: 8px 12px; font-size: 14px; }
+    button[type=submit] { background: linear-gradient(90deg, #818cf8, #38bdf8); border: none; border-radius: 6px; color: #0d1117; font-size: 14px; font-weight: 700; padding: 10px 24px; cursor: pointer; transition: opacity .15s; }
+    button[type=submit]:hover { opacity: .85; }
+    .error { background: #2d1b1b; border: 1px solid #f85149; border-radius: 6px; color: #f85149; padding: 12px 16px; margin-bottom: 16px; }
+    .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .result-header span { font-size: 14px; color: #8b949e; }
+    .copy-btn { background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; padding: 6px 14px; cursor: pointer; transition: background .15s; }
+    .copy-btn:hover { background: #30363d; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #0d1117; color: #8b949e; font-weight: 600; padding: 10px 12px; text-align: left; border-bottom: 1px solid #30363d; }
+    td { padding: 10px 12px; border-bottom: 1px solid #21262d; vertical-align: top; }
+    tr:hover td { background: #1c2128; }
+    a { color: #38bdf8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .loading { display: none; color: #8b949e; font-size: 14px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <header><h1>アポリストメーカー</h1></header>
+  <main>
+    <form method="POST" action="/search" onsubmit="showLoading()">
+      <div class="card">
+        <h2>エリア（複数選択可）</h2>
+        <div class="ward-grid">
+          {% for ward in wards %}
+          <label class="checkbox">
+            <input type="checkbox" name="areas" value="{{ ward }}"
+              {% if request.form.getlist('areas') and ward in request.form.getlist('areas') %}checked{% endif %}>
+            <span>{{ ward }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>業種（複数選択可）</h2>
+        <div class="industry-grid">
+          {% for industry in industries %}
+          <label class="checkbox">
+            <input type="checkbox" name="industries" value="{{ industry }}"
+              {% if request.form.getlist('industries') and industry in request.form.getlist('industries') %}checked{% endif %}>
+            <span>{{ industry }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="controls">
+        <label style="font-size:14px; color:#8b949e;">取得件数上限:
+          <select name="limit">
+            <option value="50">50件</option>
+            <option value="100">100件</option>
+            <option value="200">200件</option>
+          </select>
+        </label>
+        <button type="submit">リスト作成</button>
+        <span class="loading" id="loading">🔍 検索中... しばらくお待ちください</span>
+      </div>
+    </form>
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    {% if results is defined and results %}
+    <div class="card">
+      <div class="result-header">
+        <span>{{ count }}件（派遣会社除外済み）</span>
+        <button class="copy-btn" onclick="copyTable()">全コピー（Excel貼付け用）</button>
+      </div>
+      <table id="result-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>会社名</th>
+            <th>業種</th>
+            <th>エリア</th>
+            <th>公式HP</th>
+            <th>Indeed掲載ページ</th>
+            <th>求人タイトル</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in results %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ r.company }}</td>
+            <td>{{ r.industry }}</td>
+            <td>{{ r.area }}</td>
+            <td>{% if r.website != '—' %}<a href="{{ r.website }}" target="_blank">{{ r.website }}</a>{% else %}—{% endif %}</td>
+            <td><a href="{{ r.indeed_url }}" target="_blank">Indeedを見る</a></td>
+            <td>{{ r.job_title }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </main>
+
+  <script>
+    function showLoading() {
+      document.getElementById('loading').style.display = 'inline';
+    }
+
+    function copyTable() {
+      const table = document.getElementById('result-table');
+      const rows = Array.from(table.rows);
+      const tsv = rows.map(row =>
+        Array.from(row.cells).map(cell => cell.innerText.trim()).join('\t')
+      ).join('\n');
+      navigator.clipboard.writeText(tsv).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = 'コピーしました！';
+        setTimeout(() => btn.textContent = '全コピー（Excel貼付け用）', 2000);
+      });
+    }
+  </script>
+</body>
+</html>
