@@ -54,14 +54,14 @@ def parse_job_cards(html: str, area: str, industry: str) -> list[dict]:
 
     return results
 
-PHONE_PATTERN = re.compile(r'0\d{1,4}[-−ー]\d{1,4}[-−ー]\d{4}')
+PHONE_PATTERN = re.compile(r'0\d{1,4}[-−ー・]\d{1,4}[-−ー・]\d{4}')
 
-def lookup_phone_itp(company_name: str, page) -> str:
-    query = urllib.parse.quote(company_name)
-    url = f"https://itp.ne.jp/search/list/?sf=1&sk={query}&af=13"
+def lookup_phone(company_name: str, page) -> str:
+    query = urllib.parse.quote(f"{company_name} 代表電話番号")
+    url = f"https://search.yahoo.co.jp/search?p={query}"
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=15000)
-        page.wait_for_timeout(1500)
+        page.wait_for_timeout(2000)
         text = page.inner_text("body")
         match = PHONE_PATTERN.search(text)
         return match.group() if match else "—"
@@ -137,7 +137,7 @@ def search_indeed(
         phone_page = context.new_page()
         for i, r in enumerate(result):
             print(f"📞 電話番号を検索中... ({i+1}/{len(result)}) {r['company']}")
-            r["phone"] = lookup_phone_itp(r["company"], phone_page)
+            r["phone"] = lookup_phone(r["company"], phone_page)
             time.sleep(random.uniform(0.5, 1.0))
 
         browser.close()
