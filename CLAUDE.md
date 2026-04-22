@@ -98,3 +98,30 @@ python3 app.py   # → http://localhost:5001
 - Playwright インストール: `python3 -m playwright install chromium`（`playwright` コマンドはPATHにない）
 - Indeed: `requests`は403。Playwrightで `wait_until="domcontentloaded"` + 3秒待機で動作
 - 電話番号取得: Yahoo Japan検索が動作。Google・iタウンページはPlaywrightでもブロックされる
+
+---
+
+# 1日スケジュールプランナー（schedule-planner.html）
+
+AM/PM ドーナツグラフで1日の予定を可視化するWebツール。単一HTMLファイル。
+
+## 実装済み機能
+- AM/PMの2つのドーナツ円グラフ（SVG、Vanilla JS）
+- グラフリングをクリック/タップして開始・終了時刻をセット（2タップ式、30分スナップ）
+- ホバーインジケーター（白ドット→ゴースト弧→STARTドット）
+- サイドバーフォームに時刻を自動入力、活動名にフォーカス移動
+- ESC・リング外クリックで tapState リセット
+- ローカルストレージ永続化、日またぎ活動対応
+
+## 状態管理
+- `tapStateAM / tapStatePM`: `null | { startMin: number }` — 1回目タップでSTART確定、2回目でEND確定
+- `hoverMinAM / hoverMinPM`: ホバー中の30分スナップ位置
+
+## SVG タッチイベントの注意点
+- `getSVGCoords(svg, event)` は `event.touches[0]` を参照するため **touchend では使えない**（touchend時は touches が空）。touchend では `e.changedTouches[0]` を直接使うこと。
+- `xyToMin` のクランプ上限は `periodStart + 690`（+720にすると PM で `"24:00"` が生成され `<input type="time">` が無効値になる）
+- ゴースト弧の span 計算: `(endAngle - startAngle + 360) % 360` は startMin=periodStart かつ hoverMin=periodStart+720 のとき 0 になり弧が消える。条件に `&& hoverMin < periodStart + 720` を入れること。
+
+## 開発上の注意
+- ブラウザテストに Playwright MCP を使うとスクリーンショットがルートに吐き出される → セッション後に削除すること
+- `.playwright-mcp/` `.superpowers/` は `.gitignore` 済み
