@@ -361,8 +361,8 @@ function drawTapIndicator(svg, tapState, hoverMin, periodStart) {
   if (tapState) {
     const startAngle = timeToAngle(tapState.startMin, periodStart);
 
-    // ゴースト弧: hoverMin > startMin のときだけ描画
-    if (hoverMin > tapState.startMin) {
+    // ゴースト弧: hoverMin > startMin かつ period上限未満のときだけ描画
+    if (hoverMin > tapState.startMin && hoverMin < periodStart + 720) {
       const span = (hoverAngle - startAngle + 360) % 360;
       const large = span > 180 ? 1 : 0;
       const oS = polarToXY(startAngle, R);
