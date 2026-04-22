@@ -210,6 +210,7 @@ let tapStatePM = null;
 let hoverMinAM = null;
 let hoverMinPM = null;
 
+// Note: not safe for 'touchend' (touches is empty); use changedTouches directly for touchend.
 function getSVGCoords(svg, event) {
   const rect = svg.getBoundingClientRect();
   const scaleX = 300 / rect.width;
