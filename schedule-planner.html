@@ -152,6 +152,8 @@ body {
   .charts-area { flex-direction: column; align-items: center; }
   .sidebar { width: 100%; }
 }
+
+#svg-am, #svg-pm { cursor: crosshair; }
 </style>
 </head>
 <body>
@@ -590,6 +592,13 @@ function setupTap(svgId, periodStart) {
 
 setupTap("svg-am", 0);
 setupTap("svg-pm", 720);
+
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  tapStateAM = null; tapStatePM = null;
+  hoverMinAM = null; hoverMinPM = null;
+  renderCharts();
+});
 
 document.getElementById("btn-add").addEventListener("click", addActivity);
 loadFromStorage();
