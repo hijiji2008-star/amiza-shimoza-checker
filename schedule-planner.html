@@ -303,7 +303,7 @@ function svgEl(tag, attrs) {
   return el;
 }
 
-function drawBase(svgId, periodStart) {
+function drawBase(svgId, periodStart, tapState) {
   const svg = document.getElementById(svgId);
   svg.textContent = "";
 
@@ -334,17 +334,27 @@ function drawBase(svgId, periodStart) {
   }
 
   const hasSeg = activities.some(a => {
-    if (a.endMin < a.startMin) return true; // 日またぎは必ずAM・PM両方に存在
+    if (a.endMin < a.startMin) return true;
     return periodStart === 0 ? a.startMin < 720 : a.endMin > 720;
   });
-  if (!hasSeg) {
+
+  if (tapState) {
     const hint = svgEl("text", {
       x: CX, y: CY,
       "text-anchor": "middle", "dominant-baseline": "middle",
-      fill: "#30363d", "font-size": "11",
+      fill: "#818cf8", "font-size": "10",
       "font-family": "system-ui, sans-serif",
     });
-    hint.textContent = "活動を追加してね";
+    hint.textContent = `${minToTimeStr(tapState.startMin)} → ?`;
+    svg.appendChild(hint);
+  } else if (!hasSeg) {
+    const hint = svgEl("text", {
+      x: CX, y: CY,
+      "text-anchor": "middle", "dominant-baseline": "middle",
+      fill: "#30363d", "font-size": "10",
+      "font-family": "system-ui, sans-serif",
+    });
+    hint.textContent = "リングをタップ";
     svg.appendChild(hint);
   }
 }
@@ -452,10 +462,12 @@ function drawSegments(svg, periodStart, periodEnd) {
 }
 
 function renderCharts() {
-  drawBase("svg-am", 0);
-  drawBase("svg-pm", 720);
+  drawBase("svg-am", 0, tapStateAM);
+  drawBase("svg-pm", 720, tapStatePM);
   drawSegments(document.getElementById("svg-am"), 0, 720);
   drawSegments(document.getElementById("svg-pm"), 720, 1440);
+  drawTapIndicator(document.getElementById("svg-am"), tapStateAM, hoverMinAM, 0);
+  drawTapIndicator(document.getElementById("svg-pm"), tapStatePM, hoverMinPM, 720);
 }
 
 function renderList() {
