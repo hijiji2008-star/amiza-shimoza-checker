@@ -205,6 +205,32 @@ const COLORS = [
 ];
 
 let activities = [];
+let tapStateAM = null; // null | { startMin: number }
+let tapStatePM = null;
+let hoverMinAM = null;
+let hoverMinPM = null;
+
+function getSVGCoords(svg, event) {
+  const rect = svg.getBoundingClientRect();
+  const scaleX = 300 / rect.width;
+  const scaleY = 300 / rect.height;
+  const src = event.touches ? event.touches[0] : event;
+  return {
+    x: (src.clientX - rect.left) * scaleX,
+    y: (src.clientY - rect.top) * scaleY,
+  };
+}
+
+function xyToMin(x, y, periodStart) {
+  const dx = x - CX, dy = y - CY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < INNER_R - 10 || dist > R + 10) return null;
+  let deg = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+  if (deg < 0) deg += 360;
+  const raw = periodStart + (deg / 360) * 720;
+  const snapped = Math.round(raw / 30) * 30;
+  return Math.min(Math.max(snapped, periodStart), periodStart + 720);
+}
 
 function timeStrToMin(t) {
   const [h, m] = t.split(":").map(Number);
