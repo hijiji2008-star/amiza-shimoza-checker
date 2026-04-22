@@ -354,6 +354,51 @@ function renderAll() {
   renderList();
 }
 
+function drawTapIndicator(svg, tapState, hoverMin, periodStart) {
+  if (hoverMin === null) return;
+  const hoverAngle = timeToAngle(hoverMin, periodStart);
+
+  if (tapState) {
+    const startAngle = timeToAngle(tapState.startMin, periodStart);
+
+    // ゴースト弧: hoverMin > startMin のときだけ描画
+    if (hoverMin > tapState.startMin) {
+      const span = (hoverAngle - startAngle + 360) % 360;
+      const large = span > 180 ? 1 : 0;
+      const oS = polarToXY(startAngle, R);
+      const oE = polarToXY(hoverAngle, R);
+      const iS = polarToXY(startAngle, INNER_R);
+      const iE = polarToXY(hoverAngle, INNER_R);
+      svg.appendChild(svgEl("path", {
+        d: `M ${oS.x} ${oS.y} A ${R} ${R} 0 ${large} 1 ${oE.x} ${oE.y}` +
+           ` L ${iE.x} ${iE.y} A ${INNER_R} ${INNER_R} 0 ${large} 0 ${iS.x} ${iS.y} Z`,
+        fill: "#818cf8", opacity: "0.3",
+      }));
+    }
+
+    // START点（青）
+    const sp = polarToXY(startAngle, (R + INNER_R) / 2);
+    svg.appendChild(svgEl("circle", {
+      cx: sp.x, cy: sp.y, r: "7", fill: "#38bdf8",
+      stroke: "#0d1117", "stroke-width": "2",
+    }));
+    const st = svgEl("text", {
+      x: sp.x, y: sp.y, "text-anchor": "middle", "dominant-baseline": "middle",
+      fill: "#0d1117", "font-size": "7", "font-family": "system-ui", "pointer-events": "none",
+    });
+    st.textContent = "S";
+    svg.appendChild(st);
+  }
+
+  // ホバードット（tapStateなし=白、あり=緑）
+  const hp = polarToXY(hoverAngle, (R + INNER_R) / 2);
+  svg.appendChild(svgEl("circle", {
+    cx: hp.x, cy: hp.y, r: "6",
+    fill: tapState ? "#34d399" : "#fff", opacity: "0.85",
+    stroke: "#0d1117", "stroke-width": "1.5",
+  }));
+}
+
 function drawSeg(svg, a, actStart, actEnd, periodStart, periodEnd) {
   const segStart = Math.max(actStart, periodStart);
   const segEnd = Math.min(actEnd, periodEnd);
