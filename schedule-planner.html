@@ -232,7 +232,7 @@ function xyToMin(x, y, periodStart) {
   if (deg < 0) deg += 360;
   const raw = periodStart + (deg / 360) * 720;
   const snapped = Math.round(raw / 30) * 30;
-  return Math.min(Math.max(snapped, periodStart), periodStart + 720);
+  return Math.min(Math.max(snapped, periodStart), periodStart + 690);
 }
 
 function timeStrToMin(t) {
@@ -527,6 +527,7 @@ function setupHover(svgId, periodStart, setHoverMin) {
 
   svg.addEventListener("touchmove", e => {
     e.preventDefault();
+    if (!e.touches.length) return;
     const { x, y } = getSVGCoords(svg, e);
     setHoverMin(xyToMin(x, y, periodStart));
     renderCharts();
