@@ -534,6 +534,63 @@ function setupHover(svgId, periodStart, setHoverMin) {
 setupHover("svg-am", 0,   v => { hoverMinAM = v; });
 setupHover("svg-pm", 720, v => { hoverMinPM = v; });
 
+function handleTap(min, periodStart) {
+  const isAM = periodStart === 0;
+  const tapState = isAM ? tapStateAM : tapStatePM;
+
+  if (min === null) {
+    // リング外タップ → リセット
+    if (isAM) { tapStateAM = null; hoverMinAM = null; }
+    else       { tapStatePM = null; hoverMinPM = null; }
+    return;
+  }
+
+  if (tapState === null) {
+    // 1回目タップ: START確定
+    if (isAM) tapStateAM = { startMin: min };
+    else      tapStatePM = { startMin: min };
+  } else {
+    const startMin = tapState.startMin;
+    if (min <= startMin) {
+      // END <= START → リセット
+      if (isAM) tapStateAM = null;
+      else      tapStatePM = null;
+    } else {
+      // 2回目タップ: END確定 → フォームに自動入力
+      document.getElementById("inp-start").value = minToTimeStr(startMin);
+      document.getElementById("inp-end").value   = minToTimeStr(min);
+      document.getElementById("inp-name").focus();
+      if (isAM) { tapStateAM = null; hoverMinAM = null; }
+      else       { tapStatePM = null; hoverMinPM = null; }
+    }
+  }
+}
+
+function setupTap(svgId, periodStart) {
+  const svg = document.getElementById(svgId);
+  const isAM = periodStart === 0;
+
+  svg.addEventListener("click", e => {
+    const { x, y } = getSVGCoords(svg, e);
+    handleTap(xyToMin(x, y, periodStart), periodStart);
+    renderCharts();
+  });
+
+  svg.addEventListener("touchend", e => {
+    e.preventDefault();
+    const touch = e.changedTouches[0];
+    const rect = svg.getBoundingClientRect();
+    const x = (touch.clientX - rect.left) * (300 / rect.width);
+    const y = (touch.clientY - rect.top)  * (300 / rect.height);
+    if (isAM) hoverMinAM = null; else hoverMinPM = null;
+    handleTap(xyToMin(x, y, periodStart), periodStart);
+    renderCharts();
+  }, { passive: false });
+}
+
+setupTap("svg-am", 0);
+setupTap("svg-pm", 720);
+
 document.getElementById("btn-add").addEventListener("click", addActivity);
 loadFromStorage();
 renderAll();
