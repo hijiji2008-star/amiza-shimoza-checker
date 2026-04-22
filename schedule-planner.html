@@ -509,6 +509,31 @@ function renderList() {
   });
 }
 
+function setupHover(svgId, periodStart, setHoverMin) {
+  const svg = document.getElementById(svgId);
+
+  svg.addEventListener("mousemove", e => {
+    const { x, y } = getSVGCoords(svg, e);
+    setHoverMin(xyToMin(x, y, periodStart));
+    renderCharts();
+  });
+
+  svg.addEventListener("mouseleave", () => {
+    setHoverMin(null);
+    renderCharts();
+  });
+
+  svg.addEventListener("touchmove", e => {
+    e.preventDefault();
+    const { x, y } = getSVGCoords(svg, e);
+    setHoverMin(xyToMin(x, y, periodStart));
+    renderCharts();
+  }, { passive: false });
+}
+
+setupHover("svg-am", 0,   v => { hoverMinAM = v; });
+setupHover("svg-pm", 720, v => { hoverMinPM = v; });
+
 document.getElementById("btn-add").addEventListener("click", addActivity);
 loadFromStorage();
 renderAll();
