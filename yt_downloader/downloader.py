@@ -3,20 +3,24 @@ import queue
 import yt_dlp
 
 
+STANDARD_QUALITIES = [
+    {'height': 2160, 'label': '4K (2160p)'},
+    {'height': 1440, 'label': '1440p'},
+    {'height': 1080, 'label': '1080p (HD)'},
+    {'height': 720,  'label': '720p (HD)'},
+    {'height': 480,  'label': '480p'},
+    {'height': 360,  'label': '360p'},
+]
+
+
 def get_available_qualities(url):
-    opts = {'quiet': True, 'skip_download': True}
+    # URL が有効な YouTube 動画かを検証するだけ
+    # YouTube の SABR 制限により yt-dlp はフォーマット一覧の URL を取得できないため、
+    # 固定の標準画質オプションを返す。ダウンロード時に yt-dlp が実際の画質を選択する。
+    opts = {'quiet': True, 'no_warnings': True}
     with yt_dlp.YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-    seen = set()
-    qualities = []
-    for f in info.get('formats', []):
-        if f.get('vcodec') not in (None, 'none') and f.get('height'):
-            h = f['height']
-            if h not in seen:
-                seen.add(h)
-                qualities.append({'height': h, 'label': f'{h}p'})
-    qualities.sort(key=lambda x: x['height'], reverse=True)
-    return qualities
+        ydl.extract_info(url, download=False)
+    return STANDARD_QUALITIES
 
 
 def download_video(url, quality, save_dir, progress_queue):
@@ -35,7 +39,7 @@ def download_video(url, quality, save_dir, progress_queue):
             })
 
     opts = {
-        'format': f'bestvideo[height<={quality}]+bestaudio/best[height<={quality}]',
+        'format': f'bestvideo[height<={quality}]+bestaudio/bestvideo[height<={quality}]/bestvideo+bestaudio/best',
         'outtmpl': os.path.join(save_dir, '%(title)s.%(ext)s'),
         'merge_output_format': 'mp4',
         'progress_hooks': [progress_hook],

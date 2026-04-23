@@ -1,40 +1,40 @@
 from unittest.mock import patch, MagicMock
-from downloader import get_available_qualities
+from downloader import get_available_qualities, STANDARD_QUALITIES
 
 
-def _mock_ydl(formats):
+def _mock_ydl(formats=None):
     m = MagicMock()
     m.__enter__ = lambda s: m
     m.__exit__ = MagicMock(return_value=False)
-    m.extract_info.return_value = {'formats': formats, 'title': 'Test Video'}
+    m.extract_info.return_value = {'formats': formats or [], 'title': 'Test Video'}
     return m
 
 
-def test_get_available_qualities_sorted_descending():
-    formats = [
-        {'vcodec': 'avc1', 'height': 720},
-        {'vcodec': 'avc1', 'height': 1080},
-        {'vcodec': 'avc1', 'height': 480},
-        {'vcodec': 'none', 'height': 1080},  # audio-only -- must be excluded
-    ]
-    with patch('downloader.yt_dlp.YoutubeDL', return_value=_mock_ydl(formats)):
+def test_get_available_qualities_returns_standard_list():
+    # YouTube SABR により動的フォーマット取得は不可。固定の標準画質一覧を返す。
+    with patch('downloader.yt_dlp.YoutubeDL', return_value=_mock_ydl()):
         result = get_available_qualities('https://youtube.com/watch?v=x')
-    assert result == [
-        {'height': 1080, 'label': '1080p'},
-        {'height': 720, 'label': '720p'},
-        {'height': 480, 'label': '480p'},
-    ]
+    assert result == STANDARD_QUALITIES
 
 
-def test_get_available_qualities_deduplicates():
-    formats = [
-        {'vcodec': 'avc1', 'height': 1080},
-        {'vcodec': 'vp9',  'height': 1080},  # same height, different codec
-    ]
-    with patch('downloader.yt_dlp.YoutubeDL', return_value=_mock_ydl(formats)):
+def test_get_available_qualities_validates_url():
+    # 無効な URL は例外を投げる
+    mock = _mock_ydl()
+    mock.extract_info.side_effect = Exception('invalid URL')
+    with patch('downloader.yt_dlp.YoutubeDL', return_value=mock):
+        try:
+            get_available_qualities('not-a-url')
+            assert False, 'Should have raised'
+        except Exception as e:
+            assert 'invalid URL' in str(e)
+
+
+def test_get_available_qualities_includes_hd():
+    with patch('downloader.yt_dlp.YoutubeDL', return_value=_mock_ydl()):
         result = get_available_qualities('https://youtube.com/watch?v=x')
-    assert len(result) == 1
-    assert result[0] == {'height': 1080, 'label': '1080p'}
+    heights = [q['height'] for q in result]
+    assert 1080 in heights
+    assert 720 in heights
 
 
 import queue as queue_mod
