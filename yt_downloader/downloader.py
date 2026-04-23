@@ -1,5 +1,6 @@
 import os
 import queue
+import re
 import yt_dlp
 
 
@@ -12,13 +13,28 @@ STANDARD_QUALITIES = [
     {'height': 360,  'label': '360p'},
 ]
 
+COOKIES_PATH = os.path.join(os.path.dirname(__file__), 'cookies.txt')
+
+_ANSI_RE = re.compile(r'\x1b\[[0-9;]*m')
+
+
+def _strip_ansi(s):
+    return _ANSI_RE.sub('', s)
+
+
+def _base_opts():
+    opts = {'quiet': True, 'no_warnings': True}
+    if os.path.exists(COOKIES_PATH):
+        opts['cookiefile'] = COOKIES_PATH
+    return opts
+
+
+def has_cookies():
+    return os.path.exists(COOKIES_PATH)
+
 
 def get_available_qualities(url):
-    # URL が有効な YouTube 動画かを検証するだけ
-    # YouTube の SABR 制限により yt-dlp はフォーマット一覧の URL を取得できないため、
-    # 固定の標準画質オプションを返す。ダウンロード時に yt-dlp が実際の画質を選択する。
-    opts = {'quiet': True, 'no_warnings': True}
-    with yt_dlp.YoutubeDL(opts) as ydl:
+    with yt_dlp.YoutubeDL(_base_opts()) as ydl:
         ydl.extract_info(url, download=False)
     return STANDARD_QUALITIES
 
@@ -39,12 +55,11 @@ def download_video(url, quality, save_dir, progress_queue):
             })
 
     opts = {
+        **_base_opts(),
         'format': f'bestvideo[height<={quality}]+bestaudio/bestvideo[height<={quality}]/bestvideo+bestaudio/best',
         'outtmpl': os.path.join(save_dir, '%(title)s.%(ext)s'),
         'merge_output_format': 'mp4',
         'progress_hooks': [progress_hook],
-        'quiet': True,
-        'no_warnings': True,
     }
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
@@ -52,6 +67,6 @@ def download_video(url, quality, save_dir, progress_queue):
             title = info.get('title', 'video')
             progress_queue.put({'status': 'finished', 'filename': f'{title}.mp4'})
     except Exception as e:
-        progress_queue.put({'status': 'error', 'message': str(e)})
+        progress_queue.put({'status': 'error', 'message': _strip_ansi(str(e))})
     finally:
         progress_queue.put(None)

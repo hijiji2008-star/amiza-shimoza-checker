@@ -6,7 +6,7 @@ import threading
 
 from flask import Flask, Response, jsonify, render_template, request
 
-from downloader import get_available_qualities, download_video
+from downloader import get_available_qualities, download_video, has_cookies
 
 app = Flask(__name__)
 
@@ -34,7 +34,9 @@ def index():
 
 @app.route('/config', methods=['GET'])
 def get_config():
-    return jsonify(load_config())
+    config = load_config()
+    config['cookies_ok'] = has_cookies()
+    return jsonify(config)
 
 
 @app.route('/config', methods=['POST'])
