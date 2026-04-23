@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YT Downloader</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0d1117;
+  color: #e6edf3;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 16px;
+}
+.card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 560px;
+}
+h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, #818cf8, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.section { margin-bottom: 20px; }
+.label {
+  display: block;
+  font-size: 0.75rem;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+.row { display: flex; gap: 8px; align-items: center; }
+input[type="text"] {
+  flex: 1;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 9px 12px;
+  color: #e6edf3;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input[type="text"]:focus { border-color: #818cf8; }
+#saveDirDisplay {
+  flex: 1;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 9px 12px;
+  color: #8b949e;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.btn:hover { opacity: 0.85; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(135deg, #818cf8, #38bdf8); color: #0d1117; }
+.btn-secondary { background: #21262d; color: #e6edf3; border: 1px solid #30363d; }
+.btn-ghost { background: #21262d; color: #f85149; border: 1px solid #30363d; font-size: 0.85rem; }
+.quality-options { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 6px; }
+.quality-opt { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.quality-opt input[type="radio"] { accent-color: #818cf8; }
+#downloadBtn { width: 100%; padding: 11px; font-size: 1rem; margin-top: 16px; display: none; }
+#progressSection { display: none; margin-top: 16px; }
+.bar-bg { background: #0d1117; border-radius: 99px; height: 8px; overflow: hidden; margin-bottom: 8px; }
+.bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(135deg, #818cf8, #38bdf8);
+  border-radius: 99px;
+  transition: width 0.3s;
+}
+.progress-meta { display: flex; justify-content: space-between; font-size: 0.78rem; color: #8b949e; }
+#statusMsg { margin-top: 14px; font-size: 0.9rem; min-height: 1.2em; }
+.ok { color: #3fb950; }
+.err { color: #f85149; }
+hr { border: none; border-top: 1px solid #30363d; margin: 20px 0; }
+.update-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+#updateMsg { font-size: 0.82rem; color: #8b949e; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>YT Downloader</h1>
+
+  <div class="section">
+    <span class="label">保存先フォルダ</span>
+    <div class="row">
+      <div id="saveDirDisplay">読み込み中...</div>
+      <button class="btn btn-secondary" id="changeDirBtn">変更</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <span class="label">YouTube URL</span>
+    <div class="row">
+      <input type="text" id="urlInput" placeholder="https://www.youtube.com/watch?v=..." />
+      <button class="btn btn-primary" id="fetchBtn">画質を取得</button>
+    </div>
+  </div>
+
+  <div id="qualitySection" class="section" style="display:none">
+    <span class="label">画質</span>
+    <div class="quality-options" id="qualityOptions"></div>
+    <button class="btn btn-primary" id="downloadBtn">ダウンロード</button>
+  </div>
+
+  <div id="progressSection">
+    <div class="bar-bg"><div class="bar-fill" id="barFill"></div></div>
+    <div class="progress-meta">
+      <span id="pctLabel">0%</span>
+      <span id="speedLabel"></span>
+      <span id="etaLabel"></span>
+    </div>
+  </div>
+
+  <div id="statusMsg"></div>
+
+  <hr>
+
+  <div class="update-row">
+    <button class="btn btn-ghost" id="updateBtn">yt-dlp を更新</button>
+    <span id="updateMsg">ダウンロードできなくなったらクリック</span>
+  </div>
+</div>
+
+<script>
+(function () {
+  let es = null;
+
+  async function loadConfig() {
+    const res = await fetch('/config');
+    const data = await res.json();
+    document.getElementById('saveDirDisplay').textContent = data.save_dir;
+  }
+
+  async function changeDir() {
+    const current = document.getElementById('saveDirDisplay').textContent;
+    const newDir = prompt('新しい保存先フォルダのパス:', current);
+    if (!newDir) return;
+    const res = await fetch('/config', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({save_dir: newDir}),
+    });
+    const data = await res.json();
+    if (data.error) { setStatus(data.error, 'err'); return; }
+    document.getElementById('saveDirDisplay').textContent = data.save_dir;
+    setStatus('保存先を更新しました', 'ok');
+  }
+
+  async function fetchQualities() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url) { setStatus('URLを入力してください', 'err'); return; }
+    const btn = document.getElementById('fetchBtn');
+    btn.disabled = true;
+    btn.textContent = '取得中...';
+    setStatus('');
+    try {
+      const res = await fetch('/fetch_qualities', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({url}),
+      });
+      const data = await res.json();
+      if (data.error) { setStatus(data.error, 'err'); return; }
+      renderQualities(data.qualities);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '画質を取得';
+    }
+  }
+
+  function renderQualities(qualities) {
+    const wrap = document.getElementById('qualityOptions');
+    wrap.textContent = '';
+    qualities.forEach(function (q, i) {
+      const lbl = document.createElement('label');
+      lbl.className = 'quality-opt';
+      const radio = document.createElement('input');
+      radio.type = 'radio';
+      radio.name = 'quality';
+      radio.value = String(q.height);
+      if (i === 0) radio.checked = true;
+      const span = document.createElement('span');
+      span.textContent = q.label;
+      lbl.appendChild(radio);
+      lbl.appendChild(span);
+      wrap.appendChild(lbl);
+    });
+    document.getElementById('qualitySection').style.display = 'block';
+    document.getElementById('downloadBtn').style.display = 'block';
+  }
+
+  function startDownload() {
+    const url = document.getElementById('urlInput').value.trim();
+    const sel = document.querySelector('input[name="quality"]:checked');
+    if (!sel) { setStatus('画質を選択してください', 'err'); return; }
+
+    if (es) es.close();
+    document.getElementById('progressSection').style.display = 'block';
+    document.getElementById('downloadBtn').disabled = true;
+    document.getElementById('barFill').style.width = '0%';
+    document.getElementById('pctLabel').textContent = '0%';
+    setStatus('ダウンロード中...');
+
+    es = new EventSource('/download?url=' + encodeURIComponent(url) + '&quality=' + encodeURIComponent(sel.value));
+
+    es.onmessage = function (e) {
+      const d = JSON.parse(e.data);
+      if (d.status === 'downloading') {
+        const pct = Math.min(d.percent, 100);
+        document.getElementById('barFill').style.width = pct + '%';
+        document.getElementById('pctLabel').textContent = pct.toFixed(1) + '%';
+        document.getElementById('speedLabel').textContent = d.speed || '';
+        document.getElementById('etaLabel').textContent = d.eta ? ('残り ' + d.eta) : '';
+      } else if (d.status === 'finished') {
+        document.getElementById('barFill').style.width = '100%';
+        document.getElementById('pctLabel').textContent = '100%';
+        document.getElementById('speedLabel').textContent = '';
+        document.getElementById('etaLabel').textContent = '';
+        setStatus('完了: ' + d.filename, 'ok');
+        document.getElementById('downloadBtn').disabled = false;
+        es.close();
+      } else if (d.status === 'error') {
+        setStatus('エラー: ' + d.message, 'err');
+        document.getElementById('downloadBtn').disabled = false;
+        es.close();
+      }
+    };
+
+    es.onerror = function () {
+      setStatus('接続エラーが発生しました', 'err');
+      document.getElementById('downloadBtn').disabled = false;
+      es.close();
+    };
+  }
+
+  async function updateYtdlp() {
+    const btn = document.getElementById('updateBtn');
+    btn.disabled = true;
+    document.getElementById('updateMsg').textContent = '更新中...';
+    try {
+      const res = await fetch('/update_ytdlp', {method: 'POST'});
+      const data = await res.json();
+      document.getElementById('updateMsg').textContent = data.message || ('エラー: ' + data.error);
+    } catch (err) {
+      document.getElementById('updateMsg').textContent = 'エラーが発生しました';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function setStatus(msg, cls) {
+    const el = document.getElementById('statusMsg');
+    el.textContent = msg;
+    el.className = cls || '';
+  }
+
+  document.getElementById('changeDirBtn').addEventListener('click', changeDir);
+  document.getElementById('fetchBtn').addEventListener('click', fetchQualities);
+  document.getElementById('downloadBtn').addEventListener('click', startDownload);
+  document.getElementById('updateBtn').addEventListener('click', updateYtdlp);
+
+  loadConfig();
+}());
+</script>
+</body>
+</html>
