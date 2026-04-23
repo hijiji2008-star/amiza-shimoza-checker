@@ -83,21 +83,23 @@ HTMLのUI要素を削除したら、`toggleLang()` 内の対応する `getElemen
 
 ## ファイル構成
 - `app.py` — Flaskルート（port 5001）
-- `scraper.py` — Indeed検索・HTMLパース・フィルタリング・電話番号取得
+- `scraper.py` — Indeed + 求人ボックス検索・HTMLパース・フィルタリング・電話番号取得
 - `templates/index.html` — フォーム画面 + 結果テーブル
 - `tests/test_scraper.py` — スクレイピングロジックの単体テスト
 
 ## 起動方法
-```bash
-cd apo_list_maker
-python3 app.py   # → http://localhost:5001
-```
+`アポリストメーカー起動.command` をダブルクリック（または `python3 app.py` → http://localhost:5001）
 ※ port 5000はmacOS AirPlay Receiverが使用中のため5001を使う
 
 ## 開発上の注意
 - Playwright インストール: `python3 -m playwright install chromium`（`playwright` コマンドはPATHにない）
 - Indeed: `requests`は403。Playwrightで `wait_until="domcontentloaded"` + 3秒待機で動作
 - 電話番号取得: Yahoo Japan検索が動作。Google・iタウンページはPlaywrightでもブロックされる
+- 求人ボックス: ドメインは `xn--pckua2a7gp15o89zb.com`（求人ボックス.comのPunycode）
+- 求人ボックス 検索URL: `/{keyword}の仕事-東京都{area}?page={n}`（page省略で1ページ目）
+- 求人ボックス セレクター: カード=`section.p-result_card`、会社名=`p.p-result_company`、タイトル=`h2.p-result_title--ver2 a`
+- 東京フィルター: Yahoo検索結果に「東京都」が含まれるかで判定（完璧ではないが追加リクエスト不要）
+- 店舗検出: スペースあり・なし両対応。`・` `/` を含む社名はスクレイピングバグとして除外
 
 ---
 
@@ -125,3 +127,26 @@ AM/PM ドーナツグラフで1日の予定を可視化するWebツール。単�
 ## 開発上の注意
 - ブラウザテストに Playwright MCP を使うとスクリーンショットがルートに吐き出される → セッション後に削除すること
 - `.playwright-mcp/` `.superpowers/` は `.gitignore` 済み
+
+---
+
+# YTダウンローダー（yt_downloader/）
+
+YouTube動画をURLで保存できる自分専用ローカルWebアプリ。
+
+## ファイル構成
+- `app.py` — Flaskルート（port 5002）
+- `downloader.py` — yt-dlp ラッパー（画質取得・ダウンロード・進捗フック）
+- `templates/index.html` — 画質選択・プログレスバー・cookies状態表示 UI
+- `tests/` — pytest ユニットテスト（14本）
+
+## 起動方法
+`YTダウンローダー起動.command` をダブルクリック（または `python3 app.py` → http://localhost:5002）
+※ port 5001はapo_list_maker、port 5000はmacOS AirPlayが使用中
+
+## 開発上の注意
+- **cookies.txt 必須**: YouTube はクッキーなしのダウンロードを全ブロック（360p 含む）。`yt_downloader/cookies.txt` に配置すれば自動で使用される
+- cookies.txt の取得: Chrome拡張「Get cookies.txt LOCALLY」でYouTubeを開いた状態でエクスポート
+- macOS では Chrome v10暗号化・Safari権限エラーにより `cookiesfrombrowser` は使えない → 手動配置のみ
+- **YouTube SABR制限**: yt-dlp は web クライアントでフォーマット URL を列挙できない。画質選択は固定リスト（4K〜360p）で対応済み。ダウンロード時のフォーマット選択は yt-dlp に委任
+- yt-dlp エラーメッセージに ANSI エスケープコード（`[0;31m`）が混入する → `_strip_ansi()` で除去済み
