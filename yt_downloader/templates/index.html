@@ -182,16 +182,12 @@ hr { border: none; border-top: 1px solid #30363d; margin: 20px 0; }
     el.textContent = '';
     if (ok) {
       el.className = 'cookie-ok';
-      el.textContent = '✓ cookies.txt が設定されています';
+      el.textContent = '✓ Chrome クッキーを使用中';
     } else {
       el.className = 'cookie-banner';
       const title = document.createElement('strong');
-      title.textContent = '⚠️ cookies.txt が未設定です — ダウンロードに失敗します';
-      const body = document.createElement('div');
-      body.style.marginTop = '6px';
-      body.textContent = '設定方法: Chrome拡張「Get cookies.txt LOCALLY」でYouTubeを開いた状態でエクスポート → yt_downloader/cookies.txt に保存 → ページを再読み込み';
+      title.textContent = '⚠️ yt-dlp が見つかりません — brew install yt-dlp を実行してください';
       el.appendChild(title);
-      el.appendChild(body);
     }
   }
 

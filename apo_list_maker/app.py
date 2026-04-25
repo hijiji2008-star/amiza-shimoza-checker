@@ -29,7 +29,12 @@ def index():
 def search():
     selected_areas = request.form.getlist("areas")
     selected_industries = request.form.getlist("industries")
-    limit = int(request.form.get("limit", 50))
+    limit_raw = (request.form.get("limit") or "").strip()
+    try:
+        limit = int(limit_raw) if limit_raw else 50
+    except ValueError:
+        limit = 50
+    limit = max(10, min(limit, 100))
 
     error = None
     results = []
@@ -50,5 +55,5 @@ def search():
     )
 
 if __name__ == "__main__":
-    webbrowser.open("http://localhost:5000")
-    app.run(debug=False)
+    # 起動直後に open すると間に合わないことがあるので、基本は .command 側で開く想定
+    app.run(debug=False, port=5001)

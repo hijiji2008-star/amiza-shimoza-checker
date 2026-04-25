@@ -3,9 +3,18 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-PORT="5002"
+PORT="5001"
 URL="http://localhost:${PORT}"
-LOG_FILE="$(mktemp -t yt-downloader.XXXXXX.log)"
+LOG_FILE="$(mktemp -t apo-list-maker.XXXXXX.log)"
+
+if [[ -f "./app.py" ]]; then
+  APP_PATH="./app.py"
+elif [[ -f "./apo_list_maker/app.py" ]]; then
+  APP_PATH="./apo_list_maker/app.py"
+else
+  echo "app.py が見つかりません（このフォルダ構成に未対応です）。" >&2
+  exit 1
+fi
 
 cleanup() {
   if [[ -n "${SERVER_PID:-}" ]] && kill -0 "$SERVER_PID" 2>/dev/null; then
@@ -15,7 +24,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-python3 app.py >"$LOG_FILE" 2>&1 &
+python3 "$APP_PATH" >"$LOG_FILE" 2>&1 &
 SERVER_PID=$!
 
 # サーバが起動するまで待つ（最大20秒）
@@ -35,6 +44,5 @@ if ! curl -fsS "$URL" >/dev/null 2>&1; then
   exit 1
 fi
 
-open "$URL"
-
+open "$URL" >/dev/null 2>&1 || true
 wait "$SERVER_PID"

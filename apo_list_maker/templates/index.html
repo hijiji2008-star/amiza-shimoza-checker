@@ -69,9 +69,10 @@
       <div class="controls">
         <label style="font-size:14px; color:#8b949e;">取得件数上限:
           <select name="limit">
-            <option value="50">50件</option>
-            <option value="100">100件</option>
-            <option value="200">200件</option>
+            {% set selected_limit = (request.form.get('limit') or '50')|int %}
+            {% for n in range(10, 110, 10) %}
+            <option value="{{ n }}"{% if n == selected_limit %} selected{% endif %}>{{ n }}件</option>
+            {% endfor %}
           </select>
         </label>
         <button type="submit">リスト作成</button>
@@ -86,8 +87,11 @@
     {% if results is defined and results %}
     <div class="card">
       <div class="result-header">
-        <span>{{ count }}件（派遣会社除外済み）</span>
-        <button class="copy-btn" onclick="copyTable()">全コピー（Excel貼付け用）</button>
+        <span>{{ count }}件（電話番号あり）</span>
+        <div style="display:flex; gap:8px;">
+          <button class="copy-btn" onclick="copyTable()">全コピー（Excel貼付け用）</button>
+          <button class="copy-btn" onclick="downloadCSV()">CSVダウンロード</button>
+        </div>
       </div>
       <table id="result-table">
         <thead>
@@ -98,7 +102,7 @@
             <th>エリア</th>
             <th>電話番号</th>
             <th>公式HP</th>
-            <th>Indeed掲載ページ</th>
+            <th>求人ページ</th>
             <th>求人タイトル</th>
           </tr>
         </thead>
@@ -111,7 +115,7 @@
             <td>{{ r.area }}</td>
             <td>{{ r.phone }}</td>
             <td>{% if r.website != '—' %}<a href="{{ r.website }}" target="_blank">{{ r.website }}</a>{% else %}—{% endif %}</td>
-            <td><a href="{{ r.indeed_url }}" target="_blank">Indeedを見る</a></td>
+            <td><a href="{{ r.indeed_url }}" target="_blank">求人を見る</a></td>
             <td>{{ r.job_title }}</td>
           </tr>
           {% endfor %}
@@ -137,6 +141,25 @@
         btn.textContent = 'コピーしました！';
         setTimeout(() => btn.textContent = '全コピー（Excel貼付け用）', 2000);
       });
+    }
+
+    function downloadCSV() {
+      const table = document.getElementById('result-table');
+      const rows = Array.from(table.rows);
+      const csv = rows.map(row =>
+        Array.from(row.cells).map(cell => {
+          const text = cell.innerText.trim().replace(/"/g, '""');
+          return `"${text}"`;
+        }).join(',')
+      ).join('\n');
+      const bom = '﻿';
+      const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'apo_list.csv';
+      a.click();
+      URL.revokeObjectURL(url);
     }
   </script>
 </body>

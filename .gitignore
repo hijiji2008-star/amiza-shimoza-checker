@@ -1,4 +1,17 @@
-.worktrees/
+# System
 .DS_Store
+docs/
+.worktrees/
 .playwright-mcp/
 .superpowers/
+.pytest_cache/
+__pycache__/
+
+# YTダウンローダー
+yt_downloader/cookies.txt
+yt_downloader/config.json
+
+# shift-scheduler
+shift-scheduler/node_modules/
+shift-scheduler/dist/
+shift-scheduler/.vite/

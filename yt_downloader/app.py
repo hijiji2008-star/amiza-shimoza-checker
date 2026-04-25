@@ -1,7 +1,9 @@
 import json
 import os
+import platform
 import queue
 import subprocess
+import sys
 import threading
 
 from flask import Flask, Response, jsonify, render_template, request
@@ -97,15 +99,19 @@ def download():
 @app.route('/update_ytdlp', methods=['POST'])
 def update_ytdlp():
     try:
+        if platform.system() == 'Darwin':
+            cmd = ['brew', 'upgrade', 'yt-dlp']
+        else:
+            cmd = [sys.executable, '-m', 'pip', 'install', '--upgrade', 'yt-dlp']
         result = subprocess.run(
-            ['pip3', 'install', '-U', 'yt-dlp'],
+            cmd,
             capture_output=True,
             text=True,
             timeout=120,
         )
         if result.returncode == 0:
             return jsonify({'message': 'yt-dlp を最新版に更新しました'})
-        return jsonify({'error': result.stderr}), 500
+        return jsonify({'error': result.stderr or result.stdout}), 500
     except subprocess.TimeoutExpired:
         return jsonify({'error': 'タイムアウト（120秒）'}), 500
     except Exception as e:
