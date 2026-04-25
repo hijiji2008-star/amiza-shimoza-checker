@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>株ウォッチ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Geist', sans-serif; -webkit-font-smoothing: antialiased; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    body { background-color: #0A0B0E; color: #EDE8DF; }
+    .card { background: #13161C; border: 1px solid #222730; }
+    .card:hover { border-color: #2E343F; }
+    .up { color: #86A576; }
+    .down { color: #C15A5A; }
+    .accent { color: #F0A040; }
+    .muted { color: #8F867A; }
+    .dimmed { color: #55514B; }
+    .surface { background: #181C23; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- ヘッダー -->
+  <header class="border-b border-[#222730] bg-[#0D0F14] px-6 py-4 flex items-center justify-between sticky top-0 z-40">
+    <div class="flex items-center gap-3">
+      <div class="w-7 h-7 border border-[#F0A040] text-[#F0A040] rounded flex items-center justify-center text-sm">株</div>
+      <span class="font-semibold">株ウォッチ</span>
+      <span class="text-[10px] text-[#55514B] uppercase tracking-widest hidden sm:block">JP STOCK WATCHLIST</span>
+    </div>
+    <div class="flex gap-2">
+      {% if view == 'dashboard' %}
+      <button onclick="refreshAll()" id="refresh-btn"
+        class="flex items-center gap-2 px-3 py-1.5 text-xs border border-[#222730] text-[#8F867A] hover:text-white hover:border-[#2E343F] rounded-md transition-colors">
+        ↻ 更新
+      </button>
+      <button onclick="openAddModal()"
+        class="flex items-center gap-2 px-3 py-1.5 text-xs bg-[#F0A040] text-black font-semibold rounded-md hover:opacity-90 transition-opacity">
+        ＋ 追加
+      </button>
+      {% else %}
+      <a href="/" class="flex items-center gap-2 px-3 py-1.5 text-xs border border-[#222730] text-[#8F867A] hover:text-white rounded-md transition-colors">
+        ← 戻る
+      </a>
+      {% endif %}
+    </div>
+  </header>
+
+  <!-- ダッシュボード -->
+  {% if view == 'dashboard' %}
+  <main class="px-6 py-6 max-w-7xl mx-auto">
+    {% if not stocks %}
+    <div class="flex flex-col items-center justify-center py-24 text-center">
+      <div class="text-4xl mb-4">📊</div>
+      <p class="text-[#8F867A] mb-2">ウォッチリストが空です</p>
+      <p class="text-xs text-[#55514B]">「＋ 追加」から銘柄コードを入力してください</p>
+    </div>
+    {% else %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for stock in stocks %}
+      <div class="card rounded-xl overflow-hidden transition-colors cursor-pointer" onclick="window.location='/stock/{{ stock.code }}'">
+        <!-- カードヘッダー -->
+        <div class="px-4 py-3 border-b border-[#222730] flex items-center justify-between surface">
+          <div>
+            <div class="text-[10px] text-[#F0A040] font-mono uppercase tracking-wider">{{ stock.code }}</div>
+            <div class="font-medium text-sm mt-0.5">{{ stock.get('name', stock.code) }}</div>
+          </div>
+          <button onclick="event.stopPropagation(); removeStock('{{ stock.code }}')"
+            class="text-[#55514B] hover:text-[#C15A5A] transition-colors p-1 rounded">✕</button>
+        </div>
+        <!-- 価格 -->
+        <div class="px-4 py-3">
+          {% if stock.get('error') %}
+          <div class="text-xs text-[#C15A5A] py-4">{{ stock.error }}</div>
+          {% else %}
+          <div class="flex items-baseline gap-2 mb-3">
+            <span class="font-mono text-2xl font-bold">
+              {% if stock.price %}¥{{ '{:,.0f}'.format(stock.price) }}{% else %}—{% endif %}
+            </span>
+            {% if stock.change_pct %}
+            <span class="text-sm font-mono {{ 'up' if stock.change_pct >= 0 else 'down' }}">
+              {{ '+' if stock.change_pct >= 0 else '' }}{{ stock.change_pct }}%
+            </span>
+            {% endif %}
+          </div>
+          <!-- 指標グリッド -->
+          <div class="grid grid-cols-4 gap-2 mb-3">
+            {% for label, key in [('PER', 'per'), ('PBR', 'pbr'), ('配当', 'dividend_yield'), ('ROE', 'roe')] %}
+            <div>
+              <div class="text-[9px] text-[#55514B] uppercase">{{ label }}</div>
+              <div class="text-xs font-mono text-[#EDE8DF] mt-0.5">
+                {{ stock.get(key) if stock.get(key) else '—' }}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <!-- ニュース -->
+          {% if stock.get('news') %}
+          <div class="border-t border-[#222730] pt-2 space-y-1">
+            {% for item in stock.news[:2] %}
+            <div class="text-[10px] text-[#55514B] leading-relaxed truncate">• {{ item.title }}</div>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </main>
+  {% endif %}
+
+  <!-- 詳細画面 -->
+  {% if view == 'detail' %}
+  <main class="px-6 py-6 max-w-2xl mx-auto">
+    {% set s = stock %}
+    {% if s.get('error') %}
+    <div class="card rounded-xl p-6 text-[#C15A5A]">{{ s.error }}</div>
+    {% else %}
+    <!-- 価格ブロック -->
+    <div class="card rounded-xl p-6 mb-4">
+      <div class="text-[10px] text-[#F0A040] font-mono uppercase tracking-wider mb-1">{{ s.code }}</div>
+      <h1 class="text-2xl font-semibold mb-3">{{ s.get('name', s.code) }}</h1>
+      <div class="flex items-baseline gap-3">
+        <span class="font-mono text-4xl font-bold">
+          {% if s.price %}¥{{ '{:,.0f}'.format(s.price) }}{% else %}—{% endif %}
+        </span>
+        {% if s.change and s.change_pct %}
+        <span class="font-mono text-base {{ 'up' if s.change_pct >= 0 else 'down' }}">
+          {{ '+' if s.change >= 0 else '' }}{{ s.change }} ({{ '+' if s.change_pct >= 0 else '' }}{{ s.change_pct }}%)
+        </span>
+        {% endif %}
+      </div>
+    </div>
+    <!-- 財務指標 -->
+    <div class="card rounded-xl p-6 mb-4">
+      <div class="text-[10px] text-[#55514B] uppercase tracking-widest mb-4">財務指標</div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        {% for label, key in [('PER', 'per'), ('PBR', 'pbr'), ('配当利回り', 'dividend_yield'), ('ROE', 'roe'), ('時価総額', 'market_cap')] %}
+        <div class="surface rounded-lg p-3">
+          <div class="text-[10px] text-[#8F867A] mb-1">{{ label }}</div>
+          <div class="font-mono text-lg text-[#EDE8DF]">
+            {{ s.get(key) if s.get(key) else '—' }}
+            {% if key in ['per', 'pbr'] and s.get(key) %}倍{% endif %}
+            {% if key in ['dividend_yield', 'roe'] and s.get(key) %}%{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <!-- ニュース -->
+    {% if s.get('news') %}
+    <div class="card rounded-xl p-6 mb-4">
+      <div class="text-[10px] text-[#55514B] uppercase tracking-widest mb-4">最新ニュース</div>
+      <div class="space-y-3">
+        {% for item in s.news %}
+        <a href="{{ item.url }}" target="_blank" rel="noopener"
+           class="block text-sm text-[#EDE8DF] hover:text-[#F0A040] transition-colors leading-relaxed">
+          → {{ item.title }}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    <!-- 外部リンク -->
+    <a href="https://finance.yahoo.co.jp/quote/{{ s.code }}.T" target="_blank" rel="noopener"
+       class="block text-center text-xs text-[#8F867A] hover:text-[#F0A040] border border-[#222730] hover:border-[#F0A040] rounded-lg py-3 transition-all">
+      Yahoo!ファイナンスで詳細を見る →
+    </a>
+    {% endif %}
+  </main>
+  {% endif %}
+
+  <!-- 銘柄追加モーダル -->
+  <div id="add-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div class="card rounded-xl p-6 w-full max-w-sm">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="font-semibold">銘柄を追加</h2>
+        <button onclick="closeAddModal()" class="text-[#8F867A] hover:text-white">✕</button>
+      </div>
+      <input id="code-input" type="text" placeholder="銘柄コード（例: 7203）"
+        class="w-full bg-[#0A0B0E] border border-[#222730] rounded-lg px-3 py-2 text-sm text-white placeholder-[#55514B] focus:outline-none focus:border-[#F0A040] transition-colors mb-4"
+        onkeydown="if(event.key==='Enter') addStock()">
+      <div id="add-error" class="hidden text-xs text-[#C15A5A] mb-3"></div>
+      <button onclick="addStock()" id="add-btn"
+        class="w-full bg-[#F0A040] text-black font-semibold py-2.5 rounded-lg hover:opacity-90 transition-opacity text-sm">
+        追加
+      </button>
+    </div>
+  </div>
+
+  <script>
+    function openAddModal() {
+      document.getElementById('add-modal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('code-input').focus(), 50);
+    }
+    function closeAddModal() {
+      document.getElementById('add-modal').classList.add('hidden');
+      document.getElementById('code-input').value = '';
+      document.getElementById('add-error').classList.add('hidden');
+    }
+
+    async function addStock() {
+      const code = document.getElementById('code-input').value.trim();
+      if (!code) return;
+      const btn = document.getElementById('add-btn');
+      btn.textContent = '取得中...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/watchlist/add', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({code})
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'エラーが発生しました');
+        closeAddModal();
+        location.reload();
+      } catch (e) {
+        const err = document.getElementById('add-error');
+        err.textContent = e.message;
+        err.classList.remove('hidden');
+        btn.textContent = '追加';
+        btn.disabled = false;
+      }
+    }
+
+    async function removeStock(code) {
+      if (!confirm(`${code} をウォッチリストから削除しますか？`)) return;
+      await fetch(`/api/watchlist/${code}`, {method: 'DELETE'});
+      location.reload();
+    }
+
+    async function refreshAll() {
+      const btn = document.getElementById('refresh-btn');
+      btn.textContent = '取得中...';
+      btn.disabled = true;
+      try {
+        await fetch('/api/refresh', {method: 'POST'});
+        location.reload();
+      } catch(e) {
+        btn.textContent = '↻ 更新';
+        btn.disabled = false;
+      }
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeAddModal();
+    });
+  </script>
+</body>
+</html>
