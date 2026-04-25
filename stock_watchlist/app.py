@@ -69,5 +69,7 @@ def api_stock(code):
 
 
 if __name__ == '__main__':
-    webbrowser.open('http://localhost:5003')
+    import os
+    if not os.environ.get('WERKZEUG_RUN_MAIN'):
+        webbrowser.open('http://localhost:5003')
     app.run(port=5003, debug=True)
