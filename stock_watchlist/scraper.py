@@ -1,4 +1,7 @@
 import re
+import time
+import requests
+from datetime import datetime
 from bs4 import BeautifulSoup
 
 
@@ -83,3 +86,44 @@ def parse_news_page(soup):
             url = href if href.startswith('http') else base + href
             news.append({'title': title, 'url': url})
     return news[:4]
+
+
+HEADERS = {
+    'User-Agent': (
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+        'AppleWebKit/537.36 (KHTML, like Gecko) '
+        'Chrome/124.0.0.0 Safari/537.36'
+    ),
+    'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8',
+}
+BASE_URL = 'https://finance.yahoo.co.jp'
+
+
+def fetch_stock_data(code: str) -> dict:
+    """Yahoo!ファイナンスから1銘柄のデータを取得して返す"""
+    url = f'{BASE_URL}/quote/{code}.T'
+    resp = requests.get(url, headers=HEADERS, timeout=10)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, 'html.parser')
+    data = parse_stock_page(soup, code)
+
+    news_url = f'{BASE_URL}/quote/{code}.T/news'
+    news_resp = requests.get(news_url, headers=HEADERS, timeout=10)
+    if news_resp.status_code == 200:
+        news_soup = BeautifulSoup(news_resp.text, 'html.parser')
+        data['news'] = parse_news_page(news_soup)
+
+    data['updated_at'] = datetime.now().isoformat()
+    return data
+
+
+def fetch_all(codes: list) -> dict:
+    """複数銘柄を順次取得（1秒間隔）。失敗した銘柄はエラー情報を格納"""
+    results = {}
+    for code in codes:
+        try:
+            results[code] = fetch_stock_data(code)
+        except Exception as e:
+            results[code] = {'code': code, 'error': str(e)}
+        time.sleep(1)
+    return results
