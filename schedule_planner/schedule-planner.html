@@ -92,7 +92,8 @@ body {
   margin-bottom: 12px;
 }
 .form-group label { font-size: 0.78rem; color: #6b7280; }
-.form-group input {
+.form-group input,
+.form-group select {
   background: #0d1117;
   border: 1px solid #30363d;
   border-radius: 6px;
@@ -101,7 +102,8 @@ body {
   font-size: 0.85rem;
   width: 100%;
 }
-.form-group input:focus {
+.form-group input:focus,
+.form-group select:focus {
   outline: none;
   border-color: #818cf8;
 }
@@ -183,11 +185,11 @@ body {
       </div>
       <div class="form-group">
         <label for="inp-start">開始時刻</label>
-        <input type="time" id="inp-start" value="09:00">
+        <select id="inp-start"></select>
       </div>
       <div class="form-group">
         <label for="inp-end">終了時刻</label>
-        <input type="time" id="inp-end" value="10:00">
+        <select id="inp-end"></select>
       </div>
       <button class="btn-add" id="btn-add">＋ 追加</button>
     </div>
@@ -242,6 +244,17 @@ function timeStrToMin(t) {
 
 function minToTimeStr(min) {
   return `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+}
+
+function populateTimeSelect(selectEl, defaultValue) {
+  selectEl.textContent = "";
+  for (let min = 0; min < 24 * 60; min += 30) {
+    const opt = document.createElement("option");
+    opt.value = minToTimeStr(min);
+    opt.textContent = opt.value;
+    selectEl.appendChild(opt);
+  }
+  selectEl.value = defaultValue;
 }
 
 function addActivity() {
@@ -602,6 +615,8 @@ document.addEventListener("keydown", e => {
 });
 
 document.getElementById("btn-add").addEventListener("click", addActivity);
+populateTimeSelect(document.getElementById("inp-start"), "09:00");
+populateTimeSelect(document.getElementById("inp-end"), "10:00");
 loadFromStorage();
 renderAll();
 </script>
