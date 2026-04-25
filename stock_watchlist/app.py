@@ -31,9 +31,9 @@ def api_add():
     code = request.json.get('code', '').strip().upper()
     if not code:
         return jsonify({'error': 'code is required'}), 400
-    add_stock(code, WATCHLIST_FILE)
     try:
         stock_data = fetch_stock_data(code)
+        add_stock(code, WATCHLIST_FILE)
         wl = load_watchlist(WATCHLIST_FILE)
         wl['cache'][code] = stock_data
         save_watchlist(wl, WATCHLIST_FILE)
