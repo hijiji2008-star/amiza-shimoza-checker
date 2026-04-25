@@ -51,3 +51,24 @@ def test_parse_missing_metric_returns_none():
     result = parse_stock_page(soup, '9999')
     assert result['per'] is None
     assert result['price'] is None
+
+def test_parse_news_returns_list():
+    soup = get_soup('news_page.html')
+    result = parse_news_page(soup)
+    assert isinstance(result, list)
+
+def test_parse_news_count():
+    soup = get_soup('news_page.html')
+    result = parse_news_page(soup)
+    assert len(result) == 4
+
+def test_parse_news_has_title_and_url():
+    soup = get_soup('news_page.html')
+    result = parse_news_page(soup)
+    assert result[0]['title'] == '第3四半期決算 売上高4%増'
+    assert '/news/detail/abc123' in result[0]['url']
+
+def test_parse_news_empty_page():
+    soup = BeautifulSoup('<html><body></body></html>', 'html.parser')
+    result = parse_news_page(soup)
+    assert result == []

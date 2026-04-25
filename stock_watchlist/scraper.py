@@ -71,5 +71,15 @@ def parse_stock_page(soup, code):
 
 
 def parse_news_page(soup):
-    """Yahoo!ファイナンス ニュースページから見出しリストを返す (stub for Task 4)"""
-    return []
+    """Yahoo!ファイナンス ニュースページから見出しリストを返す"""
+    news = []
+    base = 'https://finance.yahoo.co.jp'
+    for a in soup.find_all('a', href=True):
+        href = a['href']
+        title = a.get_text(strip=True)
+        if not title or len(title) < 5:
+            continue
+        if '/news/' in href or 'news' in href:
+            url = href if href.startswith('http') else base + href
+            news.append({'title': title, 'url': url})
+    return news[:4]
