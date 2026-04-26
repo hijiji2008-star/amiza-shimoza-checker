@@ -11,7 +11,7 @@ __pycache__/
 yt_downloader/cookies.txt
 yt_downloader/config.json
 
-# shift-scheduler
-shift-scheduler/node_modules/
-shift-scheduler/dist/
-shift-scheduler/.vite/
+# shift_scheduler
+shift_scheduler/node_modules/
+shift_scheduler/dist/
+shift_scheduler/.vite/

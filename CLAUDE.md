@@ -5,7 +5,7 @@
 競合となるインタラクティブなチェッカーはなく、SEOでニッチを狙える。
 
 ## ファイル構成
-- `index.html` — メインファイル（全コードが1ファイルに収まっている）
+- `index.html` — メインファイル（全コードが1ファイルに収まっている）。`projects/` リポジトリルートに置くことでVercelが自動デプロイする
 - `index_redesign.html` — リデザイン試作（和モダン×ブルータリスト、本番未使用）
 
 ## 公開情報
@@ -151,3 +151,29 @@ YouTube動画をURLで保存できる自分専用ローカルWebアプリ。
 - macOS では Chrome v10暗号化・Safari権限エラーにより `cookiesfrombrowser` は使えない → 手動配置のみ
 - **YouTube SABR制限**: yt-dlp は web クライアントでフォーマット URL を列挙できない。画質選択は固定リスト（4K〜360p）で対応済み。ダウンロード時のフォーマット選択は yt-dlp に委任
 - yt-dlp エラーメッセージに ANSI エスケープコード（`[0;31m`）が混入する → `_strip_ansi()` で除去済み
+
+---
+
+# シフトスケジューラー（shift_scheduler/）
+
+従業員のシフトを管理するWebアプリ。React + Vite + Tailwind CSS。
+
+## ファイル構成
+- `src/App.jsx` — エントリポイント
+- `src/components/ShiftScheduler.jsx` — メインコンポーネント
+- `index.html` — Viteエントリ
+
+## 起動方法
+```bash
+cd shift_scheduler
+npm run dev   # → http://localhost:5173
+```
+
+## ビルド
+```bash
+npm run build   # dist/ に出力
+```
+
+## 開発上の注意
+- React 18 + Vite 5 + Tailwind CSS 3
+- `package.json` の `name` フィールドは `"shift-scheduler"`（kebab）のまま — npmパッケージ名はフォルダ名と一致不要
