@@ -15,3 +15,6 @@ yt_downloader/config.json
 shift_scheduler/node_modules/
 shift_scheduler/dist/
 shift_scheduler/.vite/
+
+# stock_watchlist
+stock_watchlist/watchlist.json
