@@ -395,6 +395,7 @@ function applyWeather(pct) {
 }
 
 function createRain() {
+  if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
   while (rainLayer.firstChild) rainLayer.removeChild(rainLayer.firstChild);
   rainDrops = [];
   const NS = 'http://www.w3.org/2000/svg';
@@ -449,8 +450,6 @@ function initTimer() {
   svgProgress.setAttribute('width', '0');
   applyWeather(0);
   updateHiker(0);
-  trailPts = [];
-  trailEl.setAttribute('points', '');
 }
 
 function tick() {
@@ -485,7 +484,7 @@ function playBeep() {
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 1.2);
-  } catch (e) {}
+  } catch (e) { /* AudioContext非対応ブラウザでは無視 */ }
 }
 
 startBtn.addEventListener('click', () => {
