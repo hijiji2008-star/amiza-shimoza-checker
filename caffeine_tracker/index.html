@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>カフェイン残量トラッカー</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    header { text-align: center; padding: 8px 0 16px; }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #4f46e5, #0ea5e9);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 16px 20px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      color: #8b949e;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    select, input[type="time"] {
+      background: #0d1117;
+      color: #e6edf3;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    select { flex: 1; min-width: 160px; }
+
+    button#addBtn {
+      background: linear-gradient(135deg, #4f46e5, #0ea5e9);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 16px;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button#addBtn:hover { opacity: 0.85; }
+
+    #logList {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .log-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0d1117;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+
+    .log-mg  { color: #8b949e; margin-right: 10px; }
+
+    .del-btn {
+      background: none;
+      border: none;
+      color: #8b949e;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0 2px;
+      line-height: 1;
+    }
+    .del-btn:hover { color: #e74c3c; }
+
+    .log-empty {
+      color: #484f58;
+      font-size: 13px;
+      text-align: center;
+      padding: 8px 0;
+    }
+
+    #graphWrap {
+      position: relative;
+      height: 170px;
+      background: #0d1117;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    #graphSvg { width: 100%; height: 100%; }
+
+    .y-labels {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      pointer-events: none;
+      padding: 6px 0;
+    }
+
+    .y-label { font-size: 9px; color: #484f58; padding-left: 6px; }
+
+    .x-labels {
+      position: absolute;
+      bottom: 2px; left: 0; right: 0;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 10px;
+      pointer-events: none;
+    }
+
+    .x-label { font-size: 9px; color: #484f58; }
+
+    .badges {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      background: #0d1117;
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+    }
+
+    .badge .badge-label { color: #8b949e; }
+    .badge .badge-val   { color: #e6edf3; font-weight: 600; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>caffeine tracker</h1>
+  </header>
+
+  <div class="card">
+    <div class="section-label">DRINK LOG</div>
+    <div class="input-row">
+      <select id="drinkSel"></select>
+      <input type="time" id="timePick">
+      <button id="addBtn">+ 追加</button>
+    </div>
+    <div id="logList"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">CAFFEINE LEVEL (mg)</div>
+    <div id="graphWrap">
+      <div class="y-labels" id="yLabels"></div>
+      <svg id="graphSvg" viewBox="0 0 500 170" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#4f46e5" stop-opacity="0.45"/>
+            <stop offset="100%" stop-color="#4f46e5" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path id="graphFill" fill="url(#grad)" d=""/>
+        <path id="graphLine" fill="none" stroke="#4f46e5" stroke-width="2"/>
+      </svg>
+      <div class="x-labels">
+        <span class="x-label">0:00</span>
+        <span class="x-label">6:00</span>
+        <span class="x-label">12:00</span>
+        <span class="x-label">18:00</span>
+        <span class="x-label">24:00</span>
+      </div>
+    </div>
+    <div class="badges">
+      <div class="badge">
+        <span class="badge-label">現在 </span>
+        <span class="badge-val" id="badgeCurrent">—</span>
+      </div>
+      <div class="badge">
+        <span class="badge-label">深夜0:00時点 </span>
+        <span class="badge-val" id="badgeMidnight">—</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+// JS は後続タスクで追加
+</script>
+</body>
+</html>
