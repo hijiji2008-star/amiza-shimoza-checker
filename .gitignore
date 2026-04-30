@@ -1,6 +1,5 @@
 # System
 .DS_Store
-docs/
 .worktrees/
 .playwright-mcp/
 .superpowers/
