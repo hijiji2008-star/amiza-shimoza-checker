@@ -226,7 +226,46 @@
 
 </div>
 <script>
-// JS は後続タスクで追加
+const DRINKS = [
+  { cat: 'コーヒー',         id: 'drip',        label: 'ドリップコーヒー（240ml）',       mg: 95  },
+  { cat: 'コーヒー',         id: 'espresso',     label: 'エスプレッソ（1ショット）',        mg: 63  },
+  { cat: 'コーヒー',         id: 'latte',        label: 'カフェラテ / カプチーノ（240ml）', mg: 63  },
+  { cat: 'コーヒー',         id: 'instant',      label: 'インスタントコーヒー（240ml）',    mg: 60  },
+  { cat: 'コーヒー',         id: 'convenience',  label: 'コンビニコーヒー・L（270ml）',     mg: 130 },
+  { cat: 'お茶',             id: 'green_tea',    label: '緑茶（240ml）',                   mg: 30  },
+  { cat: 'お茶',             id: 'matcha_latte', label: '抹茶ラテ（240ml）',               mg: 70  },
+  { cat: 'お茶',             id: 'black_tea',    label: '紅茶（240ml）',                   mg: 47  },
+  { cat: 'お茶',             id: 'houjicha',     label: 'ほうじ茶（240ml）',               mg: 20  },
+  { cat: 'お茶',             id: 'oolong',       label: 'ウーロン茶（240ml）',             mg: 20  },
+  { cat: 'エナジードリンク', id: 'redbull',      label: 'Red Bull（250ml）',               mg: 80  },
+  { cat: 'エナジードリンク', id: 'monster_355',  label: 'モンスターエナジー（355ml）',      mg: 114 },
+  { cat: 'エナジードリンク', id: 'monster_500',  label: 'モンスターエナジー（500ml）',      mg: 160 },
+  { cat: 'その他',           id: 'cola',         label: 'コーラ（350ml）',                 mg: 34  },
+  { cat: 'その他',           id: 'energy_drink', label: '栄養ドリンク（100ml）',           mg: 50  },
+];
+
+(function initSelect() {
+  const sel  = document.getElementById('drinkSel');
+  const cats = [...new Set(DRINKS.map(d => d.cat))];
+  cats.forEach(cat => {
+    const grp = document.createElement('optgroup');
+    grp.label = cat;
+    DRINKS.filter(d => d.cat === cat).forEach(d => {
+      const opt = document.createElement('option');
+      opt.value       = d.id;
+      opt.textContent = d.label + '  (' + d.mg + 'mg)';
+      grp.appendChild(opt);
+    });
+    sel.appendChild(grp);
+  });
+})();
+
+(function setDefaultTime() {
+  const now = new Date();
+  const hh  = String(now.getHours()).padStart(2, '0');
+  const mm  = String(now.getMinutes()).padStart(2, '0');
+  document.getElementById('timePick').value = hh + ':' + mm;
+})();
 </script>
 </body>
 </html>
