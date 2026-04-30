@@ -1,0 +1,590 @@
+# カフェイン残量トラッカー 実装プラン
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** カフェイン飲料の摂取時刻を記録すると、体内カフェイン残量の24時間推移をSVGグラフで可視化する単一HTMLファイルのWebツールを作る。
+
+**Architecture:** Vanilla JS + SVG の単一HTMLファイル (`caffeine_tracker/index.html`)。カフェインは半減期5.5時間の指数減衰モデルで計算し、0:00〜24:00 を30分刻み49点でSVGパスとして描画する。データはlocalStorageに保存し、日またぎで自動リセットする。
+
+**Tech Stack:** HTML5, Vanilla JS (ES6+), SVG, localStorage
+
+---
+
+### Task 1: HTMLスケルトン + CSS基盤
+
+**Files:**
+- Create: `caffeine_tracker/index.html`
+
+- [ ] **Step 1: `caffeine_tracker/index.html` を作成する**
+
+以下の内容で作成する:
+
+```
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>カフェイン残量トラッカー</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    header { text-align: center; padding: 8px 0 16px; }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #4f46e5, #0ea5e9);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 16px 20px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      color: #8b949e;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    select, input[type="time"] {
+      background: #0d1117;
+      color: #e6edf3;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    select { flex: 1; min-width: 160px; }
+
+    button#addBtn {
+      background: linear-gradient(135deg, #4f46e5, #0ea5e9);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 16px;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button#addBtn:hover { opacity: 0.85; }
+
+    #logList {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .log-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0d1117;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+
+    .log-mg  { color: #8b949e; margin-right: 10px; }
+
+    .del-btn {
+      background: none;
+      border: none;
+      color: #8b949e;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0 2px;
+      line-height: 1;
+    }
+    .del-btn:hover { color: #e74c3c; }
+
+    .log-empty {
+      color: #484f58;
+      font-size: 13px;
+      text-align: center;
+      padding: 8px 0;
+    }
+
+    #graphWrap {
+      position: relative;
+      height: 170px;
+      background: #0d1117;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    #graphSvg { width: 100%; height: 100%; }
+
+    .y-labels {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      pointer-events: none;
+      padding: 6px 0;
+    }
+
+    .y-label { font-size: 9px; color: #484f58; padding-left: 6px; }
+
+    .x-labels {
+      position: absolute;
+      bottom: 2px; left: 0; right: 0;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 10px;
+      pointer-events: none;
+    }
+
+    .x-label { font-size: 9px; color: #484f58; }
+
+    .badges {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      background: #0d1117;
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+    }
+
+    .badge .badge-label { color: #8b949e; }
+    .badge .badge-val   { color: #e6edf3; font-weight: 600; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>caffeine tracker</h1>
+  </header>
+
+  <div class="card">
+    <div class="section-label">DRINK LOG</div>
+    <div class="input-row">
+      <select id="drinkSel"></select>
+      <input type="time" id="timePick">
+      <button id="addBtn">+ 追加</button>
+    </div>
+    <div id="logList"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">CAFFEINE LEVEL (mg)</div>
+    <div id="graphWrap">
+      <div class="y-labels" id="yLabels"></div>
+      <svg id="graphSvg" viewBox="0 0 500 170" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#4f46e5" stop-opacity="0.45"/>
+            <stop offset="100%" stop-color="#4f46e5" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path id="graphFill" fill="url(#grad)" d=""/>
+        <path id="graphLine" fill="none" stroke="#4f46e5" stroke-width="2"/>
+      </svg>
+      <div class="x-labels">
+        <span class="x-label">0:00</span>
+        <span class="x-label">6:00</span>
+        <span class="x-label">12:00</span>
+        <span class="x-label">18:00</span>
+        <span class="x-label">24:00</span>
+      </div>
+    </div>
+    <div class="badges">
+      <div class="badge">
+        <span class="badge-label">現在 </span>
+        <span class="badge-val" id="badgeCurrent">—</span>
+      </div>
+      <div class="badge">
+        <span class="badge-label">深夜0:00時点 </span>
+        <span class="badge-val" id="badgeMidnight">—</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+// JS は後続タスクで追加
+</script>
+</body>
+</html>
+```
+
+- [ ] **Step 2: ブラウザで表示を確認する**
+
+```bash
+open caffeine_tracker/index.html
+```
+
+期待: ダークテーマのレイアウトが表示される。グラフエリアは空、ログは空。
+
+- [ ] **Step 3: コミット**
+
+```bash
+git add caffeine_tracker/index.html
+git commit -m "feat: caffeine-tracker — HTMLスケルトン・CSS基盤"
+```
+
+---
+
+### Task 2: ドリンクデータ + セレクタ初期化
+
+**Files:**
+- Modify: `caffeine_tracker/index.html` — `<script>` ブロック
+
+- [ ] **Step 1: `// JS は後続タスクで追加` をドリンクデータと初期化コードに置き換える**
+
+```js
+const DRINKS = [
+  { cat: 'コーヒー',         id: 'drip',        label: 'ドリップコーヒー（240ml）',       mg: 95  },
+  { cat: 'コーヒー',         id: 'espresso',     label: 'エスプレッソ（1ショット）',        mg: 63  },
+  { cat: 'コーヒー',         id: 'latte',        label: 'カフェラテ / カプチーノ（240ml）', mg: 63  },
+  { cat: 'コーヒー',         id: 'instant',      label: 'インスタントコーヒー（240ml）',    mg: 60  },
+  { cat: 'コーヒー',         id: 'convenience',  label: 'コンビニコーヒー・L（270ml）',     mg: 130 },
+  { cat: 'お茶',             id: 'green_tea',    label: '緑茶（240ml）',                   mg: 30  },
+  { cat: 'お茶',             id: 'matcha_latte', label: '抹茶ラテ（240ml）',               mg: 70  },
+  { cat: 'お茶',             id: 'black_tea',    label: '紅茶（240ml）',                   mg: 47  },
+  { cat: 'お茶',             id: 'houjicha',     label: 'ほうじ茶（240ml）',               mg: 20  },
+  { cat: 'お茶',             id: 'oolong',       label: 'ウーロン茶（240ml）',             mg: 20  },
+  { cat: 'エナジードリンク', id: 'redbull',      label: 'Red Bull（250ml）',               mg: 80  },
+  { cat: 'エナジードリンク', id: 'monster_355',  label: 'モンスターエナジー（355ml）',      mg: 114 },
+  { cat: 'エナジードリンク', id: 'monster_500',  label: 'モンスターエナジー（500ml）',      mg: 160 },
+  { cat: 'その他',           id: 'cola',         label: 'コーラ（350ml）',                 mg: 34  },
+  { cat: 'その他',           id: 'energy_drink', label: '栄養ドリンク（100ml）',           mg: 50  },
+];
+
+(function initSelect() {
+  const sel  = document.getElementById('drinkSel');
+  const cats = [...new Set(DRINKS.map(d => d.cat))];
+  cats.forEach(cat => {
+    const grp = document.createElement('optgroup');
+    grp.label = cat;
+    DRINKS.filter(d => d.cat === cat).forEach(d => {
+      const opt = document.createElement('option');
+      opt.value       = d.id;
+      opt.textContent = d.label + '  (' + d.mg + 'mg)';
+      grp.appendChild(opt);
+    });
+    sel.appendChild(grp);
+  });
+})();
+
+(function setDefaultTime() {
+  const now = new Date();
+  const hh  = String(now.getHours()).padStart(2, '0');
+  const mm  = String(now.getMinutes()).padStart(2, '0');
+  document.getElementById('timePick').value = hh + ':' + mm;
+})();
+```
+
+- [ ] **Step 2: ブラウザをリロードして確認する**
+
+期待: カテゴリ別 optgroup でドリンク15件が表示される。時刻ピッカーのデフォルトが現在時刻になっている。
+
+- [ ] **Step 3: コミット**
+
+```bash
+git add caffeine_tracker/index.html
+git commit -m "feat: caffeine-tracker — ドリンクデータ・セレクタ初期化"
+```
+
+---
+
+### Task 3: ログ管理（追加・削除・表示）
+
+**Files:**
+- Modify: `caffeine_tracker/index.html` — `<script>` ブロック
+
+- [ ] **Step 1: `setDefaultTime` の IIFE の後にエントリ管理コードを追加する**
+
+`renderLog` は DOM メソッドで構築し、ユーザー入力由来の値には textContent を使う。
+
+```js
+let entries = [];
+let nextId  = 1;
+
+function timeToHours(timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  return h + m / 60;
+}
+
+function saveToStorage() { /* Task 4 で実装 */ }
+function updateGraph()   { /* Task 5 で実装 */ }
+
+function addEntry() {
+  const sel   = document.getElementById('drinkSel');
+  const tPick = document.getElementById('timePick');
+  const drink = DRINKS.find(d => d.id === sel.value);
+  if (!drink) return;
+  entries.push({ id: nextId++, drink: drink.id, label: drink.label, mg: drink.mg, time: tPick.value });
+  entries.sort((a, b) => timeToHours(a.time) - timeToHours(b.time));
+  renderLog();
+  updateGraph();
+  saveToStorage();
+}
+
+function deleteEntry(id) {
+  entries = entries.filter(e => e.id !== id);
+  renderLog();
+  updateGraph();
+  saveToStorage();
+}
+
+function renderLog() {
+  const list = document.getElementById('logList');
+  while (list.firstChild) list.removeChild(list.firstChild);
+
+  if (entries.length === 0) {
+    const empty = document.createElement('div');
+    empty.className   = 'log-empty';
+    empty.textContent = 'まだ記録がありません';
+    list.appendChild(empty);
+    return;
+  }
+
+  entries.forEach(e => {
+    const item = document.createElement('div');
+    item.className = 'log-item';
+
+    const info = document.createElement('span');
+    info.textContent = e.time + '  ' + e.label;
+
+    const right = document.createElement('span');
+
+    const mgSpan = document.createElement('span');
+    mgSpan.className   = 'log-mg';
+    mgSpan.textContent = e.mg + 'mg';
+
+    const del = document.createElement('button');
+    del.className   = 'del-btn';
+    del.textContent = '✕';
+    del.addEventListener('click', () => deleteEntry(e.id));
+
+    right.appendChild(mgSpan);
+    right.appendChild(del);
+    item.appendChild(info);
+    item.appendChild(right);
+    list.appendChild(item);
+  });
+}
+
+document.getElementById('addBtn').addEventListener('click', addEntry);
+
+renderLog();
+```
+
+- [ ] **Step 2: ブラウザで動作を確認する**
+
+- ドリンクを選択して「+ 追加」→ ログに追加されること
+- ✕ ボタンで削除できること
+- 複数エントリが時刻順にソートされること
+- エントリなし時「まだ記録がありません」が表示されること
+
+- [ ] **Step 3: コミット**
+
+```bash
+git add caffeine_tracker/index.html
+git commit -m "feat: caffeine-tracker — ログ追加・削除・表示"
+```
+
+---
+
+### Task 4: localStorage 永続化
+
+**Files:**
+- Modify: `caffeine_tracker/index.html` — `<script>` ブロック
+
+- [ ] **Step 1: `function saveToStorage() { /* Task 4 で実装 */ }` を以下に置き換える**
+
+```js
+function saveToStorage() {
+  const today = new Date().toISOString().slice(0, 10);
+  localStorage.setItem('caffeine_log', JSON.stringify({ date: today, entries, nextId }));
+}
+```
+
+- [ ] **Step 2: `renderLog();` の直前に loadFromStorage の定義と呼び出しを追加する**
+
+```js
+function loadFromStorage() {
+  const raw = localStorage.getItem('caffeine_log');
+  if (!raw) return;
+  const data = JSON.parse(raw);
+  const today = new Date().toISOString().slice(0, 10);
+  if (data.date !== today) {
+    localStorage.removeItem('caffeine_log');
+    return;
+  }
+  entries = data.entries;
+  nextId  = data.nextId ?? (entries.length ? Math.max(...entries.map(e => e.id)) + 1 : 1);
+}
+
+loadFromStorage();
+```
+
+- [ ] **Step 3: ブラウザで動作を確認する**
+
+- ドリンクを追加 → ページをリロード → エントリが残っていること
+- DevTools → Application → Local Storage → `caffeine_log` に `{ date, entries, nextId }` が入っていること
+
+- [ ] **Step 4: コミット**
+
+```bash
+git add caffeine_tracker/index.html
+git commit -m "feat: caffeine-tracker — localStorage永続化・日またぎリセット"
+```
+
+---
+
+### Task 5: カフェイン計算 + SVGグラフ描画
+
+**Files:**
+- Modify: `caffeine_tracker/index.html` — `<script>` ブロック
+
+- [ ] **Step 1: `function updateGraph() { /* Task 5 で実装 */ }` を以下に置き換える**
+
+```js
+const HALF_LIFE = 5.5;
+
+function caffeineAt(tHours) {
+  return entries.reduce((sum, e) => {
+    const ti = timeToHours(e.time);
+    if (tHours < ti) return sum;
+    return sum + e.mg * Math.pow(2, -(tHours - ti) / HALF_LIFE);
+  }, 0);
+}
+
+function computePoints() {
+  const pts = [];
+  for (let i = 0; i <= 48; i++) pts.push(caffeineAt(i * 0.5));
+  return pts;
+}
+
+function updateGraph() {
+  const pts    = computePoints();
+  const maxVal = Math.max(100, ...pts);
+  const W = 500, H = 170, PAD_L = 12, PAD_R = 12, PAD_T = 10, PAD_B = 18;
+  const gW = W - PAD_L - PAD_R;
+  const gH = H - PAD_T - PAD_B;
+
+  const toX = i   => PAD_L + (i / 48) * gW;
+  const toY = val => PAD_T + (1 - val / maxVal) * gH;
+
+  const lineD = pts.map((v, i) => (i === 0 ? 'M' : 'L') + toX(i).toFixed(1) + ',' + toY(v).toFixed(1)).join(' ');
+  const fillD = lineD
+    + ' L' + toX(48).toFixed(1) + ',' + (PAD_T + gH).toFixed(1)
+    + ' L' + toX(0).toFixed(1)  + ',' + (PAD_T + gH).toFixed(1) + ' Z';
+
+  document.getElementById('graphLine').setAttribute('d', lineD);
+  document.getElementById('graphFill').setAttribute('d', fillD);
+
+  const yLabels = document.getElementById('yLabels');
+  while (yLabels.firstChild) yLabels.removeChild(yLabels.firstChild);
+  [maxVal, Math.round(maxVal / 2), 0].forEach(v => {
+    const span = document.createElement('span');
+    span.className   = 'y-label';
+    span.textContent = Math.round(v) + 'mg';
+    yLabels.appendChild(span);
+  });
+
+  const now  = new Date();
+  const nowH = now.getHours() + now.getMinutes() / 60;
+  document.getElementById('badgeCurrent').textContent  = Math.round(caffeineAt(nowH)) + 'mg';
+  document.getElementById('badgeMidnight').textContent = Math.round(caffeineAt(24))   + 'mg';
+}
+```
+
+- [ ] **Step 2: `renderLog();` の後に `updateGraph();` を追加する**
+
+```js
+loadFromStorage();
+renderLog();
+updateGraph();
+```
+
+- [ ] **Step 3: ブラウザで動作を確認する**
+
+- ドリンクを追加 → グラフにカフェイン推移曲線が表示されること
+- 削除するとグラフが更新されること
+- エントリなし時はグラフが平坦（0mg）であること
+- Y軸ラベルが maxVal / maxVal/2 / 0 の3段で表示されること
+- 現在mg・深夜0:00時点のバッジに数値が表示されること
+
+- [ ] **Step 4: コミット**
+
+```bash
+git add caffeine_tracker/index.html
+git commit -m "feat: caffeine-tracker — カフェイン計算・SVGグラフ描画・バッジ"
+```
+
+---
+
+### Task 6: リアルタイム更新 + 最終動作確認
+
+**Files:**
+- Modify: `caffeine_tracker/index.html` — `<script>` ブロック
+
+- [ ] **Step 1: `updateGraph();` の後に setInterval を追加する**
+
+```js
+setInterval(updateGraph, 60_000);
+```
+
+- [ ] **Step 2: ブラウザで最終確認する（全項目チェック）**
+
+- [ ] 初回表示時の時刻ピッカーが現在時刻になっている
+- [ ] ドリンクを複数追加すると残量が正しく合算される（例: コーヒー95mg + 緑茶30mg を同時刻に追加 → Y軸最大値が125mg付近）
+- [ ] ✕ で削除するとグラフ・バッジが即時更新される
+- [ ] ページリロード後もエントリが保持される
+- [ ] DevTools → Local Storage の `date` を前日の日付に書き換えてリロード → ログがリセットされる
+- [ ] スマホ幅375px でレイアウトが崩れない（DevTools → Toggle device toolbar）
+- [ ] エントリが0件の状態でも「まだ記録がありません」とバッジ「—」が表示される
+
+- [ ] **Step 3: コミット**
+
+```bash
+git add caffeine_tracker/index.html
+git commit -m "feat: caffeine-tracker — リアルタイム更新・完成"
+```
