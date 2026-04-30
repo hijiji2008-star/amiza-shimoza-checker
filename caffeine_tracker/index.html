@@ -280,7 +280,54 @@ function saveToStorage() {
   localStorage.setItem('caffeine_log', JSON.stringify({ date: today, entries, nextId }));
 }
 
-function updateGraph()   { /* Task 5 で実装 */ }
+const HALF_LIFE = 5.5;
+
+function caffeineAt(tHours) {
+  return entries.reduce((sum, e) => {
+    const ti = timeToHours(e.time);
+    if (tHours < ti) return sum;
+    return sum + e.mg * Math.pow(2, -(tHours - ti) / HALF_LIFE);
+  }, 0);
+}
+
+function computePoints() {
+  const pts = [];
+  for (let i = 0; i <= 48; i++) pts.push(caffeineAt(i * 0.5));
+  return pts;
+}
+
+function updateGraph() {
+  const pts    = computePoints();
+  const maxVal = Math.max(100, ...pts);
+  const W = 500, H = 170, PAD_L = 12, PAD_R = 12, PAD_T = 10, PAD_B = 18;
+  const gW = W - PAD_L - PAD_R;
+  const gH = H - PAD_T - PAD_B;
+
+  const toX = i   => PAD_L + (i / 48) * gW;
+  const toY = val => PAD_T + (1 - val / maxVal) * gH;
+
+  const lineD = pts.map((v, i) => (i === 0 ? 'M' : 'L') + toX(i).toFixed(1) + ',' + toY(v).toFixed(1)).join(' ');
+  const fillD = lineD
+    + ' L' + toX(48).toFixed(1) + ',' + (PAD_T + gH).toFixed(1)
+    + ' L' + toX(0).toFixed(1)  + ',' + (PAD_T + gH).toFixed(1) + ' Z';
+
+  document.getElementById('graphLine').setAttribute('d', lineD);
+  document.getElementById('graphFill').setAttribute('d', fillD);
+
+  const yLabels = document.getElementById('yLabels');
+  while (yLabels.firstChild) yLabels.removeChild(yLabels.firstChild);
+  [maxVal, Math.round(maxVal / 2), 0].forEach(v => {
+    const span = document.createElement('span');
+    span.className   = 'y-label';
+    span.textContent = Math.round(v) + 'mg';
+    yLabels.appendChild(span);
+  });
+
+  const now  = new Date();
+  const nowH = now.getHours() + now.getMinutes() / 60;
+  document.getElementById('badgeCurrent').textContent  = Math.round(caffeineAt(nowH)) + 'mg';
+  document.getElementById('badgeMidnight').textContent = Math.round(caffeineAt(24))   + 'mg';
+}
 
 function addEntry() {
   const sel   = document.getElementById('drinkSel');
@@ -362,6 +409,7 @@ function loadFromStorage() {
 
 loadFromStorage();
 renderLog();
+updateGraph();
 </script>
 </body>
 </html>
