@@ -275,8 +275,15 @@ function timeToHours(timeStr) {
   return h + m / 60;
 }
 
+function localDateStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
+
 function saveToStorage() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateStr();
   localStorage.setItem('caffeine_log', JSON.stringify({ date: today, entries, nextId }));
 }
 
@@ -332,6 +339,7 @@ function updateGraph() {
 function addEntry() {
   const sel   = document.getElementById('drinkSel');
   const tPick = document.getElementById('timePick');
+  if (!tPick.value) return;
   const drink = DRINKS.find(d => d.id === sel.value);
   if (!drink) return;
   entries.push({ id: nextId++, drink: drink.id, label: drink.label, mg: drink.mg, time: tPick.value });
@@ -398,7 +406,7 @@ function loadFromStorage() {
     localStorage.removeItem('caffeine_log');
     return;
   }
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateStr();
   if (data.date !== today || !Array.isArray(data.entries)) {
     localStorage.removeItem('caffeine_log');
     return;
