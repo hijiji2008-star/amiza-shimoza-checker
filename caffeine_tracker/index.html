@@ -266,6 +266,78 @@ const DRINKS = [
   const mm  = String(now.getMinutes()).padStart(2, '0');
   document.getElementById('timePick').value = hh + ':' + mm;
 })();
+
+let entries = [];
+let nextId  = 1;
+
+function timeToHours(timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  return h + m / 60;
+}
+
+function saveToStorage() { /* Task 4 で実装 */ }
+function updateGraph()   { /* Task 5 で実装 */ }
+
+function addEntry() {
+  const sel   = document.getElementById('drinkSel');
+  const tPick = document.getElementById('timePick');
+  const drink = DRINKS.find(d => d.id === sel.value);
+  if (!drink) return;
+  entries.push({ id: nextId++, drink: drink.id, label: drink.label, mg: drink.mg, time: tPick.value });
+  entries.sort((a, b) => timeToHours(a.time) - timeToHours(b.time));
+  renderLog();
+  updateGraph();
+  saveToStorage();
+}
+
+function deleteEntry(id) {
+  entries = entries.filter(e => e.id !== id);
+  renderLog();
+  updateGraph();
+  saveToStorage();
+}
+
+function renderLog() {
+  const list = document.getElementById('logList');
+  while (list.firstChild) list.removeChild(list.firstChild);
+
+  if (entries.length === 0) {
+    const empty = document.createElement('div');
+    empty.className   = 'log-empty';
+    empty.textContent = 'まだ記録がありません';
+    list.appendChild(empty);
+    return;
+  }
+
+  entries.forEach(e => {
+    const item = document.createElement('div');
+    item.className = 'log-item';
+
+    const info = document.createElement('span');
+    info.textContent = e.time + '  ' + e.label;
+
+    const right = document.createElement('span');
+
+    const mgSpan = document.createElement('span');
+    mgSpan.className   = 'log-mg';
+    mgSpan.textContent = e.mg + 'mg';
+
+    const del = document.createElement('button');
+    del.className   = 'del-btn';
+    del.textContent = '✕';
+    del.addEventListener('click', () => deleteEntry(e.id));
+
+    right.appendChild(mgSpan);
+    right.appendChild(del);
+    item.appendChild(info);
+    item.appendChild(right);
+    list.appendChild(item);
+  });
+}
+
+document.getElementById('addBtn').addEventListener('click', addEntry);
+
+renderLog();
 </script>
 </body>
 </html>
