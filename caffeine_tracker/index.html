@@ -410,7 +410,7 @@ function loadFromStorage() {
 loadFromStorage();
 renderLog();
 updateGraph();
-setInterval(updateGraph, 60_000);
+setInterval(() => { try { updateGraph(); } catch (e) { console.error('updateGraph failed:', e); } }, 60_000);
 </script>
 </body>
 </html>
