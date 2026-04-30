@@ -344,9 +344,15 @@ document.getElementById('addBtn').addEventListener('click', addEntry);
 function loadFromStorage() {
   const raw = localStorage.getItem('caffeine_log');
   if (!raw) return;
-  const data = JSON.parse(raw);
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    localStorage.removeItem('caffeine_log');
+    return;
+  }
   const today = new Date().toISOString().slice(0, 10);
-  if (data.date !== today) {
+  if (data.date !== today || !Array.isArray(data.entries)) {
     localStorage.removeItem('caffeine_log');
     return;
   }
