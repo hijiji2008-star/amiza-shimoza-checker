@@ -123,6 +123,20 @@
       font-size: 13px;
     }
 
+    .entry-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      font-size: 10px;
+      flex-shrink: 0;
+      margin-right: 8px;
+    }
     .log-mg  { color: #8b949e; margin-right: 10px; }
 
     .del-btn {
@@ -227,7 +241,6 @@
   <div class="card">
     <div class="section-label" id="graphLabel">CAFFEINE LEVEL (mg)</div>
     <div id="graphWrap">
-      <div class="y-labels" id="yLabels"></div>
       <svg id="graphSvg" viewBox="0 0 500 170" preserveAspectRatio="none">
         <defs>
           <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
@@ -240,11 +253,22 @@
         <line id="line50mg" x1="12" y1="80" x2="488" y2="80"
               stroke="#f59e0b" stroke-opacity="0.25" stroke-width="1"
               stroke-dasharray="4 5" visibility="hidden"/>
+        <g id="yLabelGroup"></g>
+        <g id="entryMarkers"></g>
+        <text id="label50mg" x="6" y="0"
+              fill="#484f58" font-size="9" text-anchor="start"
+              visibility="hidden">50mg</text>
+        <line id="drop50Line" x1="0" y1="0" x2="0" y2="0"
+              stroke="#f59e0b" stroke-opacity="0.25" stroke-width="1"
+              stroke-dasharray="4 5" visibility="hidden"/>
+        <text id="drop50Text" x="0" y="0"
+              fill="#f59e0b" font-size="9" text-anchor="middle"
+              visibility="hidden"></text>
         <line id="nowLine" x1="250" y1="10" x2="250" y2="152"
               stroke="#e6edf3" stroke-opacity="0.22" stroke-width="1"/>
+        <g id="xLabelGroup"></g>
       </svg>
       <div id="centerTimeLabel">--:--</div>
-      <div class="x-labels" id="xLabels"></div>
     </div>
     <div class="badges">
       <div class="badge" id="badge50mg">
@@ -488,22 +512,29 @@ function find50mgTime(nowH) {
   return null;
 }
 
-function renderWindowXLabels(nowH) {
-  const el = document.getElementById('xLabels');
-  if (!el) return;
-  while (el.firstChild) el.removeChild(el.firstChild);
+const X_LABEL_Y = 166;
+
+function renderWindowXLabels(nowH, PAD_L, gW) {
+  const g = document.getElementById('xLabelGroup');
+  if (!g) return;
+  while (g.firstChild) g.removeChild(g.firstChild);
+  const NS = 'http://www.w3.org/2000/svg';
   const ticks = [
-    nowH - WINDOW_HALF_HOURS,
-    nowH - WINDOW_HALF_HOURS / 2,
-    nowH,
-    nowH + WINDOW_HALF_HOURS / 2,
-    nowH + WINDOW_HALF_HOURS,
+    { t: nowH - WINDOW_HALF_HOURS,     x: PAD_L,             anchor: 'start'  },
+    { t: nowH - WINDOW_HALF_HOURS / 2, x: PAD_L + gW * 0.25, anchor: 'middle' },
+    { t: nowH,                          x: PAD_L + gW * 0.5,  anchor: 'middle' },
+    { t: nowH + WINDOW_HALF_HOURS / 2, x: PAD_L + gW * 0.75, anchor: 'middle' },
+    { t: nowH + WINDOW_HALF_HOURS,     x: PAD_L + gW,         anchor: 'end'    },
   ];
-  ticks.forEach(t => {
-    const span = document.createElement('span');
-    span.className   = 'x-label';
-    span.textContent = hoursToHHMM(t);
-    el.appendChild(span);
+  ticks.forEach(({ t, x, anchor }) => {
+    const txt = document.createElementNS(NS, 'text');
+    txt.setAttribute('x', x.toFixed(1));
+    txt.setAttribute('y', X_LABEL_Y);
+    txt.setAttribute('fill', '#484f58');
+    txt.setAttribute('font-size', '9');
+    txt.setAttribute('text-anchor', anchor);
+    txt.textContent = hoursToHHMM(t);
+    g.appendChild(txt);
   });
 }
 
@@ -512,7 +543,7 @@ function updateGraph() {
   const nowH = now.getHours() + now.getMinutes() / 60;
   const pts    = computeWindowPoints(nowH);
   const maxVal = Math.max(100, ...pts);
-  const W = 500, H = 170, PAD_L = 12, PAD_R = 12, PAD_T = 10, PAD_B = 18;
+  const W = 500, H = 170, PAD_L = 12, PAD_R = 12, PAD_T = 22, PAD_B = 18;
   const gW = W - PAD_L - PAD_R;
   const gH = H - PAD_T - PAD_B;
 
@@ -527,13 +558,22 @@ function updateGraph() {
   document.getElementById('graphLine').setAttribute('d', lineD);
   document.getElementById('graphFill').setAttribute('d', fillD);
 
-  const yLabels = document.getElementById('yLabels');
-  while (yLabels.firstChild) yLabels.removeChild(yLabels.firstChild);
-  [maxVal, Math.round(maxVal / 2), 0].forEach(v => {
-    const span = document.createElement('span');
-    span.className   = 'y-label';
-    span.textContent = Math.round(v) + 'mg';
-    yLabels.appendChild(span);
+  const yLabelGroup = document.getElementById('yLabelGroup');
+  while (yLabelGroup.firstChild) yLabelGroup.removeChild(yLabelGroup.firstChild);
+  const NS_SVG = 'http://www.w3.org/2000/svg';
+  [
+    { val: maxVal,              y: toY(maxVal) + 9        },
+    { val: Math.round(maxVal / 2), y: toY(maxVal / 2) + 4 },
+    { val: 0,                   y: toY(0) - 2             },
+  ].forEach(({ val, y }) => {
+    const txt = document.createElementNS(NS_SVG, 'text');
+    txt.setAttribute('x', '6');
+    txt.setAttribute('y', y.toFixed(1));
+    txt.setAttribute('fill', '#484f58');
+    txt.setAttribute('font-size', '9');
+    txt.setAttribute('text-anchor', 'start');
+    txt.textContent = Math.round(val) + 'mg';
+    yLabelGroup.appendChild(txt);
   });
 
   document.getElementById('badgeCurrent').textContent = Math.round(caffeineAtContinuous(nowH)) + 'mg';
@@ -550,7 +590,8 @@ function updateGraph() {
   const centerLabel = document.getElementById('centerTimeLabel');
   if (centerLabel) centerLabel.textContent = hoursToHHMM(nowH);
 
-  const line50 = document.getElementById('line50mg');
+  const line50     = document.getElementById('line50mg');
+  const label50mg  = document.getElementById('label50mg');
   if (line50) {
     const y50 = toY(50);
     if (y50 >= PAD_T && y50 <= PAD_T + gH) {
@@ -559,12 +600,68 @@ function updateGraph() {
       line50.setAttribute('x1', PAD_L);
       line50.setAttribute('x2', PAD_L + gW);
       line50.setAttribute('visibility', 'visible');
+      if (label50mg) {
+        label50mg.setAttribute('y', (y50 - 2).toFixed(1));
+        label50mg.setAttribute('visibility', 'visible');
+      }
     } else {
       line50.setAttribute('visibility', 'hidden');
+      if (label50mg) label50mg.setAttribute('visibility', 'hidden');
     }
   }
 
-  renderWindowXLabels(nowH);
+  const drop50Line = document.getElementById('drop50Line');
+  const drop50Text = document.getElementById('drop50Text');
+  const dropTime   = find50mgTime(nowH);
+  const winStart   = nowH - WINDOW_HALF_HOURS;
+  const winEnd     = nowH + WINDOW_HALF_HOURS;
+  if (drop50Line && drop50Text && dropTime !== null && dropTime >= winStart && dropTime <= winEnd) {
+    const xDrop    = PAD_L + ((dropTime - winStart) / (2 * WINDOW_HALF_HOURS)) * gW;
+    const yInter   = toY(50);
+    drop50Line.setAttribute('x1', xDrop.toFixed(1));
+    drop50Line.setAttribute('x2', xDrop.toFixed(1));
+    drop50Line.setAttribute('y1', yInter.toFixed(1));
+    drop50Line.setAttribute('y2', (PAD_T + gH).toFixed(1));
+    drop50Line.setAttribute('visibility', 'visible');
+    drop50Text.setAttribute('x', xDrop.toFixed(1));
+    drop50Text.setAttribute('y', X_LABEL_Y);
+    drop50Text.textContent = hoursToHHMM(dropTime);
+    drop50Text.setAttribute('visibility', 'visible');
+  } else {
+    if (drop50Line) drop50Line.setAttribute('visibility', 'hidden');
+    if (drop50Text) drop50Text.setAttribute('visibility', 'hidden');
+  }
+
+  renderWindowXLabels(nowH, PAD_L, gW);
+
+  const entryMarkers = document.getElementById('entryMarkers');
+  while (entryMarkers.firstChild) entryMarkers.removeChild(entryMarkers.firstChild);
+  const NS_M = 'http://www.w3.org/2000/svg';
+  entries.forEach((e, idx) => {
+    const ti = timeToHours(e.time);
+    if (ti < winStart || ti > winEnd) return;
+    const mx = PAD_L + ((ti - winStart) / (2 * WINDOW_HALF_HOURS)) * gW;
+    const my = toY(caffeineAtContinuous(ti)) - 12;
+    const g = document.createElementNS(NS_M, 'g');
+    const circle = document.createElementNS(NS_M, 'circle');
+    circle.setAttribute('cx', mx.toFixed(1));
+    circle.setAttribute('cy', my.toFixed(1));
+    circle.setAttribute('r', '8');
+    circle.setAttribute('fill', '#161b22');
+    circle.setAttribute('stroke', '#30363d');
+    circle.setAttribute('stroke-width', '1');
+    const txt = document.createElementNS(NS_M, 'text');
+    txt.setAttribute('x', mx.toFixed(1));
+    txt.setAttribute('y', my.toFixed(1));
+    txt.setAttribute('fill', '#8b949e');
+    txt.setAttribute('font-size', '8');
+    txt.setAttribute('text-anchor', 'middle');
+    txt.setAttribute('dominant-baseline', 'central');
+    txt.textContent = String(idx + 1);
+    g.appendChild(circle);
+    g.appendChild(txt);
+    entryMarkers.appendChild(g);
+  });
 
   const badge50mg    = document.getElementById('badge50mg');
   const badge50mgVal = document.getElementById('badge50mgVal');
@@ -603,6 +700,7 @@ function deleteEntry(id) {
   saveToStorage();
 }
 
+
 function renderLog() {
   const list = document.getElementById('logList');
   while (list.firstChild) list.removeChild(list.firstChild);
@@ -615,11 +713,16 @@ function renderLog() {
     return;
   }
 
-  entries.forEach(e => {
+  entries.forEach((e, idx) => {
     const item = document.createElement('div');
     item.className = 'log-item';
 
+    const numSpan = document.createElement('span');
+    numSpan.className   = 'entry-num';
+    numSpan.textContent = String(idx + 1);
+
     const info = document.createElement('span');
+    info.style.flex = '1';
     const drinkLabel = DRINKS.find(d => d.id === e.drink)?.label ?? e.drink;
     info.textContent = e.time + '  ' + drinkLabel;
 
@@ -636,6 +739,7 @@ function renderLog() {
 
     right.appendChild(mgSpan);
     right.appendChild(del);
+    item.appendChild(numSpan);
     item.appendChild(info);
     item.appendChild(right);
     list.appendChild(item);
