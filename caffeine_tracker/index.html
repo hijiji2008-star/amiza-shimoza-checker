@@ -187,6 +187,24 @@
 
     .badge .badge-label { color: #8b949e; }
     .badge .badge-val   { color: #e6edf3; font-weight: 600; }
+
+    #aboutLangBtn {
+      background: none;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: 11px;
+      letter-spacing: 1px;
+      cursor: pointer;
+    }
+    #aboutLangBtn:hover { color: #e6edf3; border-color: #8b949e; }
+
+    #aboutText {
+      font-size: 13px;
+      color: #8b949e;
+      line-height: 1.8;
+    }
   </style>
 </head>
 <body>
@@ -239,6 +257,14 @@
         <span class="badge-val" id="badge50mgVal">—</span>
       </div>
     </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <span class="section-label" style="margin-bottom:0">ABOUT</span>
+      <button id="aboutLangBtn">EN</button>
+    </div>
+    <p id="aboutText">ドリンクを記録するだけで、体内のカフェイン残量をリアルタイムに計算します。カフェインの半減期は約5.5時間。50mgの目安時刻を参考に、最後の一杯のタイミングを決めましょう。</p>
   </div>
 
 </div>
@@ -519,6 +545,17 @@ function loadFromStorage() {
   entries = data.entries;
   nextId  = data.nextId ?? (entries.length ? Math.max(...entries.map(e => e.id)) + 1 : 1);
 }
+
+const ABOUT_TEXT = {
+  ja: 'ドリンクを記録するだけで、体内のカフェイン残量をリアルタイムに計算します。カフェインの半減期は約5.5時間。50mgの目安時刻を参考に、最後の一杯のタイミングを決めましょう。',
+  en: 'Log your drinks to instantly track how much caffeine remains in your body. Caffeine has a half-life of ~5.5 hours — use the 50 mg estimate to decide when to have your last cup.'
+};
+let aboutLang = 'ja';
+document.getElementById('aboutLangBtn').addEventListener('click', () => {
+  aboutLang = aboutLang === 'ja' ? 'en' : 'ja';
+  document.getElementById('aboutText').textContent  = ABOUT_TEXT[aboutLang];
+  document.getElementById('aboutLangBtn').textContent = aboutLang === 'ja' ? 'EN' : 'JA';
+});
 
 loadFromStorage();
 renderLog();
