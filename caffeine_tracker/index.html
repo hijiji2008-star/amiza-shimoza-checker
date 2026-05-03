@@ -208,6 +208,17 @@
     .badge .badge-label { color: #8b949e; }
     .badge .badge-val   { color: #e6edf3; font-weight: 600; }
 
+    #currentDisplay {
+      text-align: center;
+      margin-top: 14px;
+      margin-bottom: 4px;
+    }
+    #currentDisplay #badgeCurrent {
+      font-size: 28px;
+      font-weight: 700;
+      color: #e6edf3;
+    }
+
     #aboutText {
       font-size: 13px;
       color: #8b949e;
@@ -252,12 +263,12 @@
       <div id="centerTimeLabel">--:--</div>
       <div class="x-labels" id="xLabels"></div>
     </div>
+    <div id="currentDisplay">
+      <span class="badge-label" id="badgeCurrentLabel">現在 </span>
+      <span id="badgeCurrent">—</span>
+    </div>
     <div class="badges">
-      <div class="badge">
-        <span class="badge-label" id="badgeCurrentLabel">現在 </span>
-        <span class="badge-val" id="badgeCurrent">—</span>
-      </div>
-<div class="badge" id="badge50mg">
+      <div class="badge" id="badge50mg">
         <span class="badge-label" id="badge50mgLabel">50mgになる時刻 </span>
         <span class="badge-val" id="badge50mgVal">—</span>
       </div>
@@ -512,17 +523,7 @@ function updateGraph() {
   }
 
   const centerLabel = document.getElementById('centerTimeLabel');
-  if (centerLabel) {
-    while (centerLabel.firstChild) centerLabel.removeChild(centerLabel.firstChild);
-    const timeDiv = document.createElement('div');
-    timeDiv.textContent = hoursToHHMM(nowH);
-    timeDiv.style.cssText = 'font-size:10px;opacity:0.65;letter-spacing:1px;';
-    const mgDiv = document.createElement('div');
-    mgDiv.textContent = Math.round(caffeineAtContinuous(nowH)) + 'mg';
-    mgDiv.style.cssText = 'font-size:15px;font-weight:600;letter-spacing:0;margin-top:1px;';
-    centerLabel.appendChild(timeDiv);
-    centerLabel.appendChild(mgDiv);
-  }
+  if (centerLabel) centerLabel.textContent = hoursToHHMM(nowH);
 
   renderWindowXLabels(nowH);
 
