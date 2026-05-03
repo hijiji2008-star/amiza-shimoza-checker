@@ -37,13 +37,6 @@
     letter-spacing: 4px;
   }
 
-  #phaseLabel {
-    font-size: 13px;
-    color: #94a3b8;
-    letter-spacing: 1px;
-    min-height: 20px;
-  }
-
   .presets {
     display: flex;
     gap: 8px;
@@ -155,17 +148,79 @@
   <polygon points="30,270 240,30 450,270" fill="url(#mtMainGrad)"/>
   <polygon points="30,270 240,30 240,270" fill="#000" opacity="0.1"/>
 
-  <!-- 木々（左） -->
+  <!-- 斜面の林（手前ほど大きく濃い） -->
+  <g id="mtTrees" opacity="0.92">
+    <g fill="#0f2d0c" opacity="0.85">
+      <polygon points="108,198 100,222 116,222"/>
+      <polygon points="152,162 144,186 160,186"/>
+      <polygon points="318,118 310,142 326,142"/>
+      <polygon points="362,152 354,176 370,176"/>
+    </g>
+    <g fill="#143214">
+      <polygon points="92,218 84,242 100,242"/>
+      <polygon points="124,188 116,212 132,212"/>
+      <polygon points="178,128 170,152 186,152"/>
+      <polygon points="198,108 192,128 204,128"/>
+      <polygon points="286,88 280,108 292,108"/>
+      <polygon points="306,108 300,128 312,128"/>
+      <polygon points="338,138 330,162 346,162"/>
+      <polygon points="378,168 370,192 386,192"/>
+      <polygon points="408,198 400,222 416,222"/>
+    </g>
+    <g fill="#1a3a18">
+      <polygon points="76,232 68,254 84,254"/>
+      <polygon points="112,208 104,232 120,232"/>
+      <polygon points="142,176 134,200 150,200"/>
+      <polygon points="164,150 156,174 172,174"/>
+      <polygon points="188,122 180,146 196,146"/>
+      <polygon points="212,98 206,118 218,118"/>
+      <polygon points="268,78 262,98 274,98"/>
+      <polygon points="292,94 284,118 300,118"/>
+      <polygon points="324,124 316,148 332,148"/>
+      <polygon points="348,148 340,172 356,172"/>
+      <polygon points="388,188 380,212 396,212"/>
+      <polygon points="418,212 410,236 426,236"/>
+    </g>
+    <g fill="#1e4416">
+      <polygon points="52,246 60,220 68,246"/>
+      <polygon points="96,244 104,222 112,244"/>
+      <polygon points="130,236 138,210 146,236"/>
+      <polygon points="226,88 232,66 238,88"/>
+      <polygon points="248,82 254,62 260,82"/>
+      <polygon points="368,244 376,222 384,244"/>
+      <polygon points="404,236 412,212 420,236"/>
+    </g>
+  </g>
+
+  <!-- 木々（麓・手前） -->
   <g fill="#1e4416">
     <polygon points="42,252 54,226 66,252"/>
     <polygon points="60,256 74,228 88,256"/>
     <polygon points="78,254 92,230 106,254"/>
   </g>
-  <!-- 木々（右） -->
   <g fill="#1e4416">
     <polygon points="374,252 386,226 398,252"/>
     <polygon points="392,256 406,228 420,256"/>
     <polygon points="410,254 424,230 438,254"/>
+  </g>
+
+  <!-- 夕景のカラス（進捗約90%以降・JSで移動） -->
+  <g id="crowsGroup" opacity="0" pointer-events="none">
+    <g id="crow0" transform="translate(0,0)">
+      <path d="M -7,0 L 0,-4.2 L 7,0" fill="none" stroke="#08090c" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g id="crow1" transform="translate(0,0)">
+      <path d="M -6,0 L 0,-3.6 L 6,0" fill="none" stroke="#08090c" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g id="crow2" transform="translate(0,0)">
+      <path d="M -7.5,0 L 0,-4.5 L 7.5,0" fill="none" stroke="#08090c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g id="crow3" transform="translate(0,0)">
+      <path d="M -5.5,0 L 0,-3.3 L 5.5,0" fill="none" stroke="#08090c" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g id="crow4" transform="translate(0,0)">
+      <path d="M -6.5,0 L 0,-3.9 L 6.5,0" fill="none" stroke="#08090c" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
   </g>
 
   <!-- 地面 -->
@@ -199,7 +254,6 @@
 </svg>
 
 <div id="timeDisplay">00:00</div>
-<div id="phaseLabel"></div>
 
 <div class="presets">
   <button class="preset-btn" data-min="5"  data-sec="0">5分</button>
@@ -224,7 +278,7 @@
 const START = { x: 30,  y: 265 };
 const PEAK  = { x: 240, y: 30  };
 const END   = { x: 450, y: 265 };
-const RAIN_MAX = 60;
+const RAIN_MAX = 140;
 
 let totalSeconds = 300;
 let remaining    = 300;
@@ -234,9 +288,9 @@ let trailPts     = [];
 let rainDrops    = [];
 let animFrameId  = null;
 let currentRainDensity = 1.0;
+let scenePct = 0;
 
 const timeDisplay  = document.getElementById('timeDisplay');
-const phaseLabel   = document.getElementById('phaseLabel');
 const startBtn     = document.getElementById('startBtn');
 const resetBtn     = document.getElementById('resetBtn');
 const minSel       = document.getElementById('minSel');
@@ -256,6 +310,14 @@ const hArmL  = document.getElementById('hArmL');
 const hArmR  = document.getElementById('hArmR');
 const hLegL  = document.getElementById('hLegL');
 const hLegR  = document.getElementById('hLegR');
+const crowsGroup = document.getElementById('crowsGroup');
+const crowEls    = [
+  document.getElementById('crow0'),
+  document.getElementById('crow1'),
+  document.getElementById('crow2'),
+  document.getElementById('crow3'),
+  document.getElementById('crow4')
+];
 
 (function buildMinSel() {
   for (let i = 0; i <= 99; i++) {
@@ -339,59 +401,114 @@ function updateHiker(pct) {
 }
 
 const KF_SKY_TOP = [
-  { at: 0.0, val: '#1a2535' }, { at: 0.4, val: '#1e3a5a' },
-  { at: 0.5, val: '#1e6baa' }, { at: 0.6, val: '#1a5a90' },
-  { at: 0.8, val: '#7c3000' }, { at: 1.0, val: '#0f1a35' }
+  { at: 0.0, val: '#1a2535' }, { at: 0.15, val: '#1e3048' },
+  { at: 0.26, val: '#2d4a6a' }, { at: 0.36, val: '#2568a5' },
+  { at: 0.42, val: '#1f7bc4' }, { at: 0.48, val: '#3d9ee8' },
+  { at: 0.5, val: '#50b8fc' }, { at: 0.54, val: '#3aa7f0' },
+  { at: 0.62, val: '#2d92dc' }, { at: 0.68, val: '#1a5a90' },
+  { at: 0.70, val: '#5a3a48' }, { at: 0.81, val: '#4a2840' },
+  { at: 0.91, val: '#3d1c30' }, { at: 1.0, val: '#2d1825' }
 ];
 const KF_SKY_BTM = [
-  { at: 0.0, val: '#2d3f52' }, { at: 0.4, val: '#3d6080' },
-  { at: 0.5, val: '#a8d8f0' }, { at: 0.6, val: '#7ec8e3' },
-  { at: 0.8, val: '#f97316' }, { at: 1.0, val: '#1a0800' }
+  { at: 0.0, val: '#2d3f52' }, { at: 0.15, val: '#354a60' },
+  { at: 0.26, val: '#5a7a9a' }, { at: 0.36, val: '#9ed4f0' },
+  { at: 0.42, val: '#c4e8fb' }, { at: 0.48, val: '#e2f5ff' },
+  { at: 0.5, val: '#f0faff' }, { at: 0.54, val: '#d8effc' },
+  { at: 0.62, val: '#b8e8f4' }, { at: 0.68, val: '#7ec8e3' },
+  { at: 0.70, val: '#fdba74' }, { at: 0.81, val: '#fb923c' },
+  { at: 0.91, val: '#f97316' }, { at: 1.0, val: '#ea580c' }
 ];
 const KF_RAIN    = [
-  { at: 0.0, val: 1.0 }, { at: 0.4, val: 0.2 }, { at: 0.5, val: 0.0 }, { at: 1.0, val: 0.0 }
+  { at: 0.00, val: 0.70 },
+  { at: 0.12, val: 0.52 },
+  { at: 0.20, val: 0.32 },
+  { at: 0.24, val: 0.14 },
+  { at: 0.28, val: 0.00 },
+  { at: 0.50, val: 0.00 },
+  { at: 1.0,  val: 0.0 }
 ];
 const KF_CLOUD   = [
-  { at: 0.0, val: 1.0 }, { at: 0.4, val: 0.5 }, { at: 0.5, val: 0.0 }, { at: 1.0, val: 0.0 }
+  { at: 0.0, val: 1.0 }, { at: 0.24, val: 0.88 },
+  { at: 0.28, val: 0.72 }, { at: 0.36, val: 0.30 }, { at: 0.42, val: 0.08 },
+  { at: 0.46, val: 0.0 }, { at: 1.0, val: 0.0 }
 ];
 const KF_RAINBOW = [
-  { at: 0.0, val: 0.0 }, { at: 0.4, val: 0.0 }, { at: 0.5, val: 1.0 },
-  { at: 0.6, val: 0.0 }, { at: 1.0, val: 0.0 }
+  { at: 0.0, val: 0.0 }, { at: 0.38, val: 0.0 },
+  { at: 0.44, val: 0.45 }, { at: 0.5, val: 1.0 },
+  { at: 0.56, val: 0.45 }, { at: 0.64, val: 0.0 }, { at: 1.0, val: 0.0 }
 ];
 const KF_SUN_CX  = [
-  { at: 0.45, val: 380 }, { at: 0.50, val: 370 }, { at: 0.80, val: 280 }, { at: 1.00, val: 200 }
+  { at: 0.26, val: 392 }, { at: 0.40, val: 386 }, { at: 0.50, val: 372 },
+  { at: 0.65, val: 372 },
+  { at: 0.83, val: 280 }, { at: 1.00, val: 200 }
 ];
 const KF_SUN_CY  = [
-  { at: 0.45, val: 45  }, { at: 0.50, val: 45  }, { at: 0.80, val: 140 }, { at: 1.00, val: 175 }
+  { at: 0.26, val: 48 }, { at: 0.40, val: 46 }, { at: 0.50, val: 44 },
+  { at: 0.65, val: 44 },
+  { at: 0.83, val: 140 }, { at: 1.00, val: 175 }
 ];
 const KF_SUN_OPA = [
-  { at: 0.45, val: 0.0 }, { at: 0.50, val: 1.0 }, { at: 0.90, val: 1.0 }, { at: 1.00, val: 0.0 }
+  { at: 0.26, val: 0.0 }, { at: 0.34, val: 0.55 }, { at: 0.42, val: 0.95 },
+  { at: 0.50, val: 1.0 }, { at: 0.88, val: 1.0 }, { at: 1.00, val: 0.92 }
 ];
 
 function applyWeather(pct) {
+  scenePct = pct;
   skyTopEl.setAttribute('stop-color',    kfLerp(KF_SKY_TOP, pct));
   skyBottomEl.setAttribute('stop-color', kfLerp(KF_SKY_BTM, pct));
   rainClouds.setAttribute('opacity',     kfLerp(KF_CLOUD, pct));
   rainbowGroup.setAttribute('opacity',   kfLerp(KF_RAINBOW, pct));
 
-  const sunPct = clamp(pct, 0.45, 1.0);
+  const sunPct = clamp(pct, 0.26, 1.0);
   sunGroup.setAttribute('opacity', kfLerp(KF_SUN_OPA, sunPct));
   const cx = kfLerp(KF_SUN_CX, sunPct);
   const cy = kfLerp(KF_SUN_CY, sunPct);
   sunGlowEl.setAttribute('cx', cx); sunGlowEl.setAttribute('cy', cy);
   sunCoreEl.setAttribute('cx', cx); sunCoreEl.setAttribute('cy', cy);
 
+  const sunsetT = clamp((pct - 0.70) / 0.30, 0, 1);
+  sunCoreEl.setAttribute('fill', lerpColor('#fdd835', '#f97316', sunsetT));
+  sunGlowEl.setAttribute('fill', lerpColor('#fde68a', '#fdba74', sunsetT));
+
   currentRainDensity = kfLerp(KF_RAIN, pct);
 
-  if (pct > 0.8) {
+  if (pct > 0.70) {
     timeDisplay.style.background = 'linear-gradient(135deg, #fb923c, #ef4444)';
-  } else if (pct > 0.45) {
+  } else if (pct > 0.28) {
     timeDisplay.style.background = 'linear-gradient(135deg, #fbbf24, #38bdf8)';
   } else {
     timeDisplay.style.background = 'linear-gradient(135deg, #f59e0b, #ef4444)';
   }
   timeDisplay.style.webkitBackgroundClip = 'text';
   timeDisplay.style.webkitTextFillColor  = 'transparent';
+}
+
+const CROW_START = 0.9;
+
+function updateCrows(nowMs) {
+  const p = scenePct;
+  if (p < CROW_START || !crowsGroup) {
+    if (crowsGroup) crowsGroup.setAttribute('opacity', '0');
+    return;
+  }
+  const fade = Math.min(1, (p - CROW_START) / 0.03);
+  crowsGroup.setAttribute('opacity', String(0.9 * fade));
+
+  const t = nowMs * 0.001;
+  const prog = p - CROW_START;
+  const baseX = 430 - prog * 1050 + Math.sin(t * 0.42) * 40 + Math.cos(t * 0.17) * 28;
+  const baseY = 40 + Math.sin(t * 0.29) * 10 + prog * 85;
+  const layout = [
+    [0, 0, -8], [24, 10, -4], [48, 20, 0], [12, 28, -12], [36, 38, -6]
+  ];
+  crowEls.forEach((el, i) => {
+    if (!el) return;
+    const [ox, oy, ang] = layout[i];
+    const flap = Math.sin(t * 2.4 + i * 0.5) * 3;
+    const x = baseX + ox;
+    const y = baseY + oy + flap;
+    el.setAttribute('transform', `translate(${x},${y}) rotate(${ang + Math.sin(t * 1.1 + i) * 2})`);
+  });
 }
 
 function createRain() {
@@ -426,13 +543,8 @@ function animateRain() {
     d.el.setAttribute('x1', d.x);     d.el.setAttribute('y1', d.y);
     d.el.setAttribute('x2', d.x - 2); d.el.setAttribute('y2', d.y + 12);
   });
+  updateCrows(performance.now());
   animFrameId = requestAnimationFrame(animateRain);
-}
-
-function updatePhase(pct) {
-  if (pct < 0.48)       phaseLabel.textContent = '⛰  登っています...';
-  else if (pct <= 0.52) phaseLabel.textContent = '🚩 頂上到達！';
-  else                  phaseLabel.textContent = '🏃 下山中...';
 }
 
 function getSetSeconds() {
@@ -446,7 +558,6 @@ function initTimer() {
   trailPts     = [];
   trailEl.setAttribute('points', '');
   timeDisplay.textContent = formatTime(remaining);
-  phaseLabel.textContent  = '';
   svgProgress.setAttribute('width', '0');
   applyWeather(0);
   updateHiker(0);
@@ -461,13 +572,11 @@ function tick() {
   svgProgress.setAttribute('width', String(pct * 384));
   updateHiker(pct);
   applyWeather(pct);
-  updatePhase(pct);
 
   if (remaining <= 0) {
     clearInterval(interval);
     interval = null;
     startBtn.textContent = '▶ スタート';
-    phaseLabel.textContent = '';
     playBeep();
   }
 }
