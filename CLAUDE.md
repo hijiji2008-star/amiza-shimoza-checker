@@ -154,6 +154,43 @@ YouTube動画をURLで保存できる自分専用ローカルWebアプリ。
 
 ---
 
+# カフェイントラッカー（caffeine_tracker/）
+
+カフェイン半減期に基づいて体内残量を時系列グラフで可視化するWebツール。単一HTMLファイル。
+
+## 公開情報
+- **URL**: https://caffeine-tracker-omega.vercel.app
+- **GitHub**: https://github.com/hijiji2008-star/caffeine-tracker
+- **ホスティング**: Vercel（GitHubにpushすると自動デプロイ）
+
+## デプロイ方法
+```bash
+cd caffeine_tracker
+git add index.html
+git commit -m "変更内容"
+git push
+```
+
+## ファイル構成
+- `caffeine_tracker/index.html` — 単一HTMLファイル（Vanilla JS・外部依存なし）
+
+## 実装済み機能
+- 15種類のカフェイン飲料（コーヒー5/お茶5/エナジードリンク3/その他2）をカテゴリ別セレクタで選択
+- 時刻入力（デフォルト現在時刻）・ログ追加・削除（時刻順ソート）
+- 半減期5.5時間の指数減衰モデル（`caffeineAtContinuous()`で24時跨ぎ対応）
+- **スライド窓グラフ**: 中央＝現在時刻・±6h表示・"いま"縦線・動的Xラベル・1分ごと自動更新
+- **50mg到達予想時刻バッジ**: 睡眠影響が減る目安時刻をオレンジで表示
+- **JA/EN全体切り替え**: タイトル・ラベル・飲み物名・カテゴリ・ABOUTテキストすべて対応
+- ABOUT セクション（ページ下部）: 使い方＋50mg閾値の根拠説明
+- localStorageによる永続化（ローカル日付で日またぎ自動リセット）
+
+## 設計上の決定事項
+- `localDateStr()` でローカル日付を使用（JSTユーザーのUTCバグ回避）
+- `caffeineAtContinuous()`: 摂取イベントを±24h複製して24時跨ぎに対応
+- `TEXTS`オブジェクト + `applyLang(lang)` でi18n管理
+
+---
+
 # シフトスケジューラー（shift_scheduler/）
 
 従業員のシフトを管理するWebアプリ。React + Vite + Tailwind CSS。

@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="google-site-verification" content="5QwFWb4EKUO-skKGpkIX3AEDFZ_8oZ8GhYos8KTK3Sc" />
   <title>カフェイン残量トラッカー</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -90,7 +91,7 @@
 
     select { flex: 1; min-width: 160px; }
 
-    input[type="time"] { flex-shrink: 0; }
+    #hourPick, #minPick { flex: 0 0 auto; min-width: 0; width: 62px; }
 
     button#addBtn {
       background: linear-gradient(135deg, #4f46e5, #0ea5e9);
@@ -227,7 +228,8 @@
     <div class="section-label" id="drinkLogLabel">DRINK LOG</div>
     <div class="input-row">
       <select id="drinkSel"></select>
-      <input type="time" id="timePick">
+      <select id="hourPick"></select>
+      <select id="minPick"></select>
       <button id="addBtn">+ 追加</button>
     </div>
     <div id="logList"></div>
@@ -306,7 +308,18 @@ const DRINKS_I18N = {
     { cat: 'コーヒー',         id: 'espresso',     label: 'エスプレッソ（1ショット）',        mg: 63  },
     { cat: 'コーヒー',         id: 'latte',        label: 'カフェラテ / カプチーノ（240ml）', mg: 63  },
     { cat: 'コーヒー',         id: 'instant',      label: 'インスタントコーヒー（240ml）',    mg: 60  },
-    { cat: 'コーヒー',         id: 'convenience',  label: 'コンビニコーヒー・L（270ml）',     mg: 130 },
+    { cat: 'コーヒー',         id: 'convenience_s', label: 'コンビニコーヒー・S（100ml）',     mg: 60  },
+    { cat: 'コーヒー',         id: 'convenience_m', label: 'コンビニコーヒー・M（150ml）',     mg: 90  },
+    { cat: 'コーヒー',         id: 'convenience_l', label: 'コンビニコーヒー・L（270ml）',     mg: 130 },
+    { cat: 'コーヒー',         id: 'can_sweet',     label: '缶コーヒー・加糖（190ml）',        mg: 72  },
+    { cat: 'コーヒー',         id: 'can_black',     label: '缶コーヒー・無糖（185ml）',        mg: 90  },
+    { cat: 'カフェチェーン',   id: 'sbux_short',    label: 'スタバ・Short（240ml）',          mg: 180 },
+    { cat: 'カフェチェーン',   id: 'sbux_tall',     label: 'スタバ・Tall（350ml）',           mg: 260 },
+    { cat: 'カフェチェーン',   id: 'sbux_grande',   label: 'スタバ・Grande（470ml）',         mg: 330 },
+    { cat: 'カフェチェーン',   id: 'doutor_s',      label: 'ドトール・S（180ml）',            mg: 115 },
+    { cat: 'カフェチェーン',   id: 'doutor_m',      label: 'ドトール・M（270ml）',            mg: 170 },
+    { cat: 'カフェチェーン',   id: 'tullys_black',  label: 'タリーズ缶・バリスタズブラック（185ml）', mg: 90  },
+    { cat: 'カフェチェーン',   id: 'tullys_latte',  label: 'タリーズ缶・バリスタズラテ（185ml）',    mg: 50  },
     { cat: 'お茶',             id: 'green_tea',    label: '緑茶（240ml）',                   mg: 48  },
     { cat: 'お茶',             id: 'matcha_latte', label: '抹茶ラテ（240ml）',               mg: 70  },
     { cat: 'お茶',             id: 'black_tea',    label: '紅茶（240ml）',                   mg: 72  },
@@ -323,7 +336,18 @@ const DRINKS_I18N = {
     { cat: 'Coffee',       id: 'espresso',     label: 'Espresso (1 shot)',                  mg: 63  },
     { cat: 'Coffee',       id: 'latte',        label: 'Café Latte / Cappuccino (240ml)',    mg: 63  },
     { cat: 'Coffee',       id: 'instant',      label: 'Instant Coffee (240ml)',             mg: 60  },
-    { cat: 'Coffee',       id: 'convenience',  label: 'Convenience Store Coffee L (270ml)', mg: 130 },
+    { cat: 'Coffee',       id: 'convenience_s', label: 'Convenience Store Coffee S (100ml)', mg: 60  },
+    { cat: 'Coffee',       id: 'convenience_m', label: 'Convenience Store Coffee M (150ml)', mg: 90  },
+    { cat: 'Coffee',       id: 'convenience_l', label: 'Convenience Store Coffee L (270ml)', mg: 130 },
+    { cat: 'Coffee',       id: 'can_sweet',     label: 'Canned Coffee Sweet (190ml)',        mg: 72  },
+    { cat: 'Coffee',       id: 'can_black',     label: 'Canned Coffee Black (185ml)',        mg: 90  },
+    { cat: 'Café Chain',   id: 'sbux_short',    label: 'Starbucks Short (240ml)',            mg: 180 },
+    { cat: 'Café Chain',   id: 'sbux_tall',     label: 'Starbucks Tall (350ml)',             mg: 260 },
+    { cat: 'Café Chain',   id: 'sbux_grande',   label: 'Starbucks Grande (470ml)',           mg: 330 },
+    { cat: 'Café Chain',   id: 'doutor_s',      label: 'Doutor S (180ml)',                   mg: 115 },
+    { cat: 'Café Chain',   id: 'doutor_m',      label: 'Doutor M (270ml)',                   mg: 170 },
+    { cat: 'Café Chain',   id: 'tullys_black',  label: "Tully's Can Black (185ml)",          mg: 90  },
+    { cat: 'Café Chain',   id: 'tullys_latte',  label: "Tully's Can Latte (185ml)",          mg: 50  },
     { cat: 'Tea',          id: 'green_tea',    label: 'Green Tea (240ml)',                  mg: 48  },
     { cat: 'Tea',          id: 'matcha_latte', label: 'Matcha Latte (240ml)',               mg: 70  },
     { cat: 'Tea',          id: 'black_tea',    label: 'Black Tea (240ml)',                  mg: 72  },
@@ -380,11 +404,23 @@ document.getElementById('langBtn').addEventListener('click', () => {
   applyLang(currentLang);
 });
 
-(function setDefaultTime() {
+(function buildTimePick() {
+  const hourSel = document.getElementById('hourPick');
+  const minSel  = document.getElementById('minPick');
+  for (let h = 0; h < 24; h++) {
+    const opt = document.createElement('option');
+    opt.value = opt.textContent = String(h).padStart(2,'0');
+    hourSel.appendChild(opt);
+  }
+  for (let m = 0; m < 60; m += 5) {
+    const opt = document.createElement('option');
+    opt.value = opt.textContent = String(m).padStart(2,'0');
+    minSel.appendChild(opt);
+  }
   const now = new Date();
-  const hh  = String(now.getHours()).padStart(2, '0');
-  const mm  = String(now.getMinutes()).padStart(2, '0');
-  document.getElementById('timePick').value = hh + ':' + mm;
+  const rounded = Math.round((now.getHours() * 60 + now.getMinutes()) / 5) * 5;
+  hourSel.value = String(Math.floor(rounded / 60) % 24).padStart(2,'0');
+  minSel.value  = String(rounded % 60).padStart(2,'0');
 })();
 
 let entries = [];
@@ -536,11 +572,10 @@ function updateGraph() {
 
 function addEntry() {
   const sel   = document.getElementById('drinkSel');
-  const tPick = document.getElementById('timePick');
-  if (!tPick.value) return;
+  const timeVal = document.getElementById('hourPick').value + ':' + document.getElementById('minPick').value;
   const drink = DRINKS.find(d => d.id === sel.value);
   if (!drink) return;
-  entries.push({ id: nextId++, drink: drink.id, mg: drink.mg, time: tPick.value });
+  entries.push({ id: nextId++, drink: drink.id, mg: drink.mg, time: timeVal });
   entries.sort((a, b) => timeToHours(a.time) - timeToHours(b.time));
   renderLog();
   updateGraph();
