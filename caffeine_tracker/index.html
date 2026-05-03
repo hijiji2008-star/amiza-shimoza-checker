@@ -257,11 +257,7 @@
         <span class="badge-label" id="badgeCurrentLabel">現在 </span>
         <span class="badge-val" id="badgeCurrent">—</span>
       </div>
-      <div class="badge">
-        <span class="badge-label" id="badgeMidnightLabel">深夜0:00時点 </span>
-        <span class="badge-val" id="badgeMidnight">—</span>
-      </div>
-      <div class="badge" id="badge50mg">
+<div class="badge" id="badge50mg">
         <span class="badge-label" id="badge50mgLabel">50mgになる時刻 </span>
         <span class="badge-val" id="badge50mgVal">—</span>
       </div>
@@ -283,7 +279,6 @@ const TEXTS = {
     logEmpty:          'まだ記録がありません',
     graphLabel:        'CAFFEINE LEVEL (mg)',
     badgeCurrentLabel: '現在 ',
-    badgeMidnightLabel:'深夜0:00時点 ',
     badge50mgLabel:    '50mgになる時刻 ',
     badge50mgOk:       '以下 ✓',
     aboutLabel:        'ABOUT',
@@ -296,7 +291,6 @@ const TEXTS = {
     logEmpty:          'No entries yet',
     graphLabel:        'CAFFEINE LEVEL (mg)',
     badgeCurrentLabel: 'Now ',
-    badgeMidnightLabel:'At midnight ',
     badge50mgLabel:    'Drops to 50mg ',
     badge50mgOk:       'Below ✓',
     aboutLabel:        'ABOUT',
@@ -371,7 +365,6 @@ function applyLang(lang) {
   document.getElementById('addBtn').textContent           = t.addBtn;
   document.getElementById('graphLabel').textContent       = t.graphLabel;
   document.getElementById('badgeCurrentLabel').textContent  = t.badgeCurrentLabel;
-  document.getElementById('badgeMidnightLabel').textContent = t.badgeMidnightLabel;
   document.getElementById('badge50mgLabel').textContent   = t.badge50mgLabel;
   document.getElementById('aboutLabel').textContent       = t.aboutLabel;
   document.getElementById('aboutText').textContent        = t.aboutText;
@@ -504,8 +497,7 @@ function updateGraph() {
     yLabels.appendChild(span);
   });
 
-  document.getElementById('badgeCurrent').textContent  = Math.round(caffeineAtContinuous(nowH)) + 'mg';
-  document.getElementById('badgeMidnight').textContent = Math.round(caffeineAtContinuous(24))   + 'mg';
+  document.getElementById('badgeCurrent').textContent = Math.round(caffeineAtContinuous(nowH)) + 'mg';
 
   const nowLine = document.getElementById('nowLine');
   if (nowLine) {
