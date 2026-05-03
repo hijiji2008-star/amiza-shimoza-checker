@@ -541,6 +541,15 @@ function renderWindowXLabels(nowH, PAD_L, gW) {
 function updateGraph() {
   const now  = new Date();
   const nowH = now.getHours() + now.getMinutes() / 60;
+
+  const before = entries.length;
+  entries = entries.filter(e => {
+    const ti = timeToHours(e.time);
+    if (nowH < ti) return true;
+    return e.mg * Math.pow(2, -(nowH - ti) / HALF_LIFE) >= 1;
+  });
+  if (entries.length !== before) { renderLog(); saveToStorage(); }
+
   const pts    = computeWindowPoints(nowH);
   const maxVal = Math.max(100, ...pts);
   const W = 500, H = 170, PAD_L = 12, PAD_R = 12, PAD_T = 22, PAD_B = 18;
@@ -728,15 +737,26 @@ function renderLog() {
 
     const right = document.createElement('span');
 
+    const nowH2 = new Date().getHours() + new Date().getMinutes() / 60;
+    const ti    = timeToHours(e.time);
+    const rem   = nowH2 >= ti
+      ? Math.round(e.mg * Math.pow(2, -(nowH2 - ti) / HALF_LIFE))
+      : e.mg;
+
+    const remSpan = document.createElement('span');
+    remSpan.textContent = '現在' + rem + 'mg';
+    remSpan.style.cssText = 'color:#e6edf3; font-size:12px; margin-right:4px;';
+
     const mgSpan = document.createElement('span');
     mgSpan.className   = 'log-mg';
-    mgSpan.textContent = e.mg + 'mg';
+    mgSpan.textContent = '/ ' + e.mg + 'mg';
 
     const del = document.createElement('button');
     del.className   = 'del-btn';
     del.textContent = '✕';
     del.addEventListener('click', () => deleteEntry(e.id));
 
+    right.appendChild(remSpan);
     right.appendChild(mgSpan);
     right.appendChild(del);
     item.appendChild(numSpan);
