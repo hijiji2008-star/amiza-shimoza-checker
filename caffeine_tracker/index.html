@@ -225,17 +225,6 @@
   </header>
 
   <div class="card">
-    <div class="section-label" id="drinkLogLabel">DRINK LOG</div>
-    <div class="input-row">
-      <select id="drinkSel"></select>
-      <select id="hourPick"></select>
-      <select id="minPick"></select>
-      <button id="addBtn">+ 追加</button>
-    </div>
-    <div id="logList"></div>
-  </div>
-
-  <div class="card">
     <div class="section-label" id="graphLabel">CAFFEINE LEVEL (mg)</div>
     <div id="graphWrap">
       <div class="y-labels" id="yLabels"></div>
@@ -248,6 +237,9 @@
         </defs>
         <path id="graphFill" fill="url(#grad)" d=""/>
         <path id="graphLine" fill="none" stroke="#4f46e5" stroke-width="2"/>
+        <line id="line50mg" x1="12" y1="80" x2="488" y2="80"
+              stroke="#f59e0b" stroke-opacity="0.25" stroke-width="1"
+              stroke-dasharray="4 5" visibility="hidden"/>
         <line id="nowLine" x1="250" y1="10" x2="250" y2="152"
               stroke="#e6edf3" stroke-opacity="0.22" stroke-width="1"/>
       </svg>
@@ -264,6 +256,17 @@
         <span class="badge-val" id="badgeCurrent">—</span>
       </div>
     </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label" id="drinkLogLabel">DRINK LOG</div>
+    <div class="input-row">
+      <select id="drinkSel"></select>
+      <select id="hourPick"></select>
+      <select id="minPick"></select>
+      <button id="addBtn">+ 追加</button>
+    </div>
+    <div id="logList"></div>
   </div>
 
   <div class="card">
@@ -454,17 +457,14 @@ function saveToStorage() {
 }
 
 const HALF_LIFE         = 5.5;
-const WINDOW_HALF_HOURS = 6;
-const WINDOW_SAMPLES    = 48;
+const WINDOW_HALF_HOURS = 12;
+const WINDOW_SAMPLES    = 144;
 
 function caffeineAtContinuous(tHours) {
   return entries.reduce((sum, e) => {
-    const ti0 = timeToHours(e.time);
-    for (const ti of [ti0 - 24, ti0, ti0 + 24]) {
-      if (tHours < ti) continue;
-      sum += e.mg * Math.pow(2, -(tHours - ti) / HALF_LIFE);
-    }
-    return sum;
+    const ti = timeToHours(e.time);
+    if (tHours < ti) return sum;
+    return sum + e.mg * Math.pow(2, -(tHours - ti) / HALF_LIFE);
   }, 0);
 }
 
@@ -491,6 +491,7 @@ function find50mgTime(nowH) {
 function renderWindowXLabels(nowH) {
   const el = document.getElementById('xLabels');
   if (!el) return;
+  while (el.firstChild) el.removeChild(el.firstChild);
   const ticks = [
     nowH - WINDOW_HALF_HOURS,
     nowH - WINDOW_HALF_HOURS / 2,
@@ -498,7 +499,6 @@ function renderWindowXLabels(nowH) {
     nowH + WINDOW_HALF_HOURS / 2,
     nowH + WINDOW_HALF_HOURS,
   ];
-  while (el.firstChild) el.removeChild(el.firstChild);
   ticks.forEach(t => {
     const span = document.createElement('span');
     span.className   = 'x-label';
@@ -549,6 +549,20 @@ function updateGraph() {
 
   const centerLabel = document.getElementById('centerTimeLabel');
   if (centerLabel) centerLabel.textContent = hoursToHHMM(nowH);
+
+  const line50 = document.getElementById('line50mg');
+  if (line50) {
+    const y50 = toY(50);
+    if (y50 >= PAD_T && y50 <= PAD_T + gH) {
+      line50.setAttribute('y1', y50.toFixed(1));
+      line50.setAttribute('y2', y50.toFixed(1));
+      line50.setAttribute('x1', PAD_L);
+      line50.setAttribute('x2', PAD_L + gW);
+      line50.setAttribute('visibility', 'visible');
+    } else {
+      line50.setAttribute('visibility', 'hidden');
+    }
+  }
 
   renderWindowXLabels(nowH);
 
