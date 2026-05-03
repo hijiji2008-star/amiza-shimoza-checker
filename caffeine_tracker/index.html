@@ -234,6 +234,10 @@
         <span class="badge-label">深夜0:00時点 </span>
         <span class="badge-val" id="badgeMidnight">—</span>
       </div>
+      <div class="badge" id="badge50mg">
+        <span class="badge-label">50mgになる時刻 </span>
+        <span class="badge-val" id="badge50mgVal">—</span>
+      </div>
     </div>
   </div>
 
@@ -345,6 +349,15 @@ function computeWindowPoints(nowH) {
   return pts;
 }
 
+function find50mgTime(nowH) {
+  const THRESHOLD = 50;
+  if (caffeineAtContinuous(nowH) <= THRESHOLD) return null;
+  for (let i = 1; i <= 24 * 60; i++) {
+    if (caffeineAtContinuous(nowH + i / 60) <= THRESHOLD) return nowH + i / 60;
+  }
+  return null;
+}
+
 function renderWindowXLabels(nowH) {
   const el = document.getElementById('xLabels');
   if (!el) return;
@@ -409,6 +422,23 @@ function updateGraph() {
   if (centerLabel) centerLabel.textContent = hoursToHHMM(nowH);
 
   renderWindowXLabels(nowH);
+
+  const badge50mg    = document.getElementById('badge50mg');
+  const badge50mgVal = document.getElementById('badge50mgVal');
+  if (badge50mg && badge50mgVal) {
+    const dropTime = find50mgTime(nowH);
+    if (dropTime !== null) {
+      badge50mg.style.display    = '';
+      badge50mgVal.style.color   = '#f59e0b';
+      badge50mgVal.textContent   = hoursToHHMM(dropTime);
+    } else if (caffeineAtContinuous(nowH) <= 50) {
+      badge50mg.style.display    = '';
+      badge50mgVal.style.color   = '#22c55e';
+      badge50mgVal.textContent   = '以下 ✓';
+    } else {
+      badge50mg.style.display = 'none';
+    }
+  }
 }
 
 function addEntry() {
