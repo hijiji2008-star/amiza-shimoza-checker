@@ -512,7 +512,17 @@ function updateGraph() {
   }
 
   const centerLabel = document.getElementById('centerTimeLabel');
-  if (centerLabel) centerLabel.textContent = hoursToHHMM(nowH);
+  if (centerLabel) {
+    while (centerLabel.firstChild) centerLabel.removeChild(centerLabel.firstChild);
+    const timeDiv = document.createElement('div');
+    timeDiv.textContent = hoursToHHMM(nowH);
+    timeDiv.style.cssText = 'font-size:10px;opacity:0.65;letter-spacing:1px;';
+    const mgDiv = document.createElement('div');
+    mgDiv.textContent = Math.round(caffeineAtContinuous(nowH)) + 'mg';
+    mgDiv.style.cssText = 'font-size:15px;font-weight:600;letter-spacing:0;margin-top:1px;';
+    centerLabel.appendChild(timeDiv);
+    centerLabel.appendChild(mgDiv);
+  }
 
   renderWindowXLabels(nowH);
 
