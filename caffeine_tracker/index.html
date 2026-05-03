@@ -26,16 +26,36 @@
       gap: 12px;
     }
 
-    header { text-align: center; padding: 8px 0 16px; }
+    header {
+      display: flex;
+      align-items: center;
+      padding: 8px 0 16px;
+    }
 
     header h1 {
+      flex: 1;
+      text-align: center;
       font-size: 22px;
       font-weight: 700;
       letter-spacing: 2px;
       background: linear-gradient(135deg, #4f46e5, #0ea5e9);
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
     }
+
+    #langBtn {
+      background: none;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 11px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    #langBtn:hover { color: #e6edf3; border-color: #8b949e; }
 
     .card {
       background: #161b22;
@@ -188,18 +208,6 @@
     .badge .badge-label { color: #8b949e; }
     .badge .badge-val   { color: #e6edf3; font-weight: 600; }
 
-    #aboutLangBtn {
-      background: none;
-      border: 1px solid #30363d;
-      color: #8b949e;
-      border-radius: 4px;
-      padding: 3px 8px;
-      font-size: 11px;
-      letter-spacing: 1px;
-      cursor: pointer;
-    }
-    #aboutLangBtn:hover { color: #e6edf3; border-color: #8b949e; }
-
     #aboutText {
       font-size: 13px;
       color: #8b949e;
@@ -212,10 +220,11 @@
 
   <header>
     <h1>caffeine tracker</h1>
+    <button id="langBtn">EN</button>
   </header>
 
   <div class="card">
-    <div class="section-label">DRINK LOG</div>
+    <div class="section-label" id="drinkLogLabel">DRINK LOG</div>
     <div class="input-row">
       <select id="drinkSel"></select>
       <input type="time" id="timePick">
@@ -225,7 +234,7 @@
   </div>
 
   <div class="card">
-    <div class="section-label">CAFFEINE LEVEL (mg)</div>
+    <div class="section-label" id="graphLabel">CAFFEINE LEVEL (mg)</div>
     <div id="graphWrap">
       <div class="y-labels" id="yLabels"></div>
       <svg id="graphSvg" viewBox="0 0 500 170" preserveAspectRatio="none">
@@ -245,50 +254,100 @@
     </div>
     <div class="badges">
       <div class="badge">
-        <span class="badge-label">現在 </span>
+        <span class="badge-label" id="badgeCurrentLabel">現在 </span>
         <span class="badge-val" id="badgeCurrent">—</span>
       </div>
       <div class="badge">
-        <span class="badge-label">深夜0:00時点 </span>
+        <span class="badge-label" id="badgeMidnightLabel">深夜0:00時点 </span>
         <span class="badge-val" id="badgeMidnight">—</span>
       </div>
       <div class="badge" id="badge50mg">
-        <span class="badge-label">50mgになる時刻 </span>
+        <span class="badge-label" id="badge50mgLabel">50mgになる時刻 </span>
         <span class="badge-val" id="badge50mgVal">—</span>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <span class="section-label" style="margin-bottom:0">ABOUT</span>
-      <button id="aboutLangBtn">EN</button>
-    </div>
+    <div class="section-label" id="aboutLabel">ABOUT</div>
     <p id="aboutText">ドリンクを記録するだけで、体内のカフェイン残量をリアルタイムに計算します。カフェインの半減期は約5.5時間。50mgの目安時刻を参考に、最後の一杯のタイミングを決めましょう。</p>
   </div>
 
 </div>
 <script>
-const DRINKS = [
-  { cat: 'コーヒー',         id: 'drip',        label: 'ドリップコーヒー（240ml）',       mg: 95  },
-  { cat: 'コーヒー',         id: 'espresso',     label: 'エスプレッソ（1ショット）',        mg: 63  },
-  { cat: 'コーヒー',         id: 'latte',        label: 'カフェラテ / カプチーノ（240ml）', mg: 63  },
-  { cat: 'コーヒー',         id: 'instant',      label: 'インスタントコーヒー（240ml）',    mg: 60  },
-  { cat: 'コーヒー',         id: 'convenience',  label: 'コンビニコーヒー・L（270ml）',     mg: 130 },
-  { cat: 'お茶',             id: 'green_tea',    label: '緑茶（240ml）',                   mg: 30  },
-  { cat: 'お茶',             id: 'matcha_latte', label: '抹茶ラテ（240ml）',               mg: 70  },
-  { cat: 'お茶',             id: 'black_tea',    label: '紅茶（240ml）',                   mg: 47  },
-  { cat: 'お茶',             id: 'houjicha',     label: 'ほうじ茶（240ml）',               mg: 20  },
-  { cat: 'お茶',             id: 'oolong',       label: 'ウーロン茶（240ml）',             mg: 20  },
-  { cat: 'エナジードリンク', id: 'redbull',      label: 'Red Bull（250ml）',               mg: 80  },
-  { cat: 'エナジードリンク', id: 'monster_355',  label: 'モンスターエナジー（355ml）',      mg: 114 },
-  { cat: 'エナジードリンク', id: 'monster_500',  label: 'モンスターエナジー（500ml）',      mg: 160 },
-  { cat: 'その他',           id: 'cola',         label: 'コーラ（350ml）',                 mg: 34  },
-  { cat: 'その他',           id: 'energy_drink', label: '栄養ドリンク（100ml）',           mg: 50  },
-];
+const TEXTS = {
+  ja: {
+    langBtn:           'EN',
+    drinkLogLabel:     'DRINK LOG',
+    addBtn:            '+ 追加',
+    logEmpty:          'まだ記録がありません',
+    graphLabel:        'CAFFEINE LEVEL (mg)',
+    badgeCurrentLabel: '現在 ',
+    badgeMidnightLabel:'深夜0:00時点 ',
+    badge50mgLabel:    '50mgになる時刻 ',
+    badge50mgOk:       '以下 ✓',
+    aboutLabel:        'ABOUT',
+    aboutText:         'ドリンクを記録するだけで、体内のカフェイン残量をリアルタイムに計算します。カフェインの半減期は約5.5時間。50mgの目安時刻を参考に、最後の一杯のタイミングを決めましょう。',
+  },
+  en: {
+    langBtn:           'JA',
+    drinkLogLabel:     'DRINK LOG',
+    addBtn:            '+ Add',
+    logEmpty:          'No entries yet',
+    graphLabel:        'CAFFEINE LEVEL (mg)',
+    badgeCurrentLabel: 'Now ',
+    badgeMidnightLabel:'At midnight ',
+    badge50mgLabel:    'Drops to 50mg ',
+    badge50mgOk:       'Below ✓',
+    aboutLabel:        'ABOUT',
+    aboutText:         'Log your drinks to instantly track how much caffeine remains in your body. Caffeine has a half-life of ~5.5 hours — use the 50 mg estimate to decide when to have your last cup.',
+  },
+};
 
-(function initSelect() {
-  const sel  = document.getElementById('drinkSel');
+const DRINKS_I18N = {
+  ja: [
+    { cat: 'コーヒー',         id: 'drip',        label: 'ドリップコーヒー（240ml）',       mg: 95  },
+    { cat: 'コーヒー',         id: 'espresso',     label: 'エスプレッソ（1ショット）',        mg: 63  },
+    { cat: 'コーヒー',         id: 'latte',        label: 'カフェラテ / カプチーノ（240ml）', mg: 63  },
+    { cat: 'コーヒー',         id: 'instant',      label: 'インスタントコーヒー（240ml）',    mg: 60  },
+    { cat: 'コーヒー',         id: 'convenience',  label: 'コンビニコーヒー・L（270ml）',     mg: 130 },
+    { cat: 'お茶',             id: 'green_tea',    label: '緑茶（240ml）',                   mg: 48  },
+    { cat: 'お茶',             id: 'matcha_latte', label: '抹茶ラテ（240ml）',               mg: 70  },
+    { cat: 'お茶',             id: 'black_tea',    label: '紅茶（240ml）',                   mg: 72  },
+    { cat: 'お茶',             id: 'houjicha',     label: 'ほうじ茶（240ml）',               mg: 48  },
+    { cat: 'お茶',             id: 'oolong',       label: 'ウーロン茶（240ml）',             mg: 48  },
+    { cat: 'エナジードリンク', id: 'redbull',      label: 'Red Bull（250ml）',               mg: 80  },
+    { cat: 'エナジードリンク', id: 'monster_355',  label: 'モンスターエナジー（355ml）',      mg: 114 },
+    { cat: 'エナジードリンク', id: 'monster_500',  label: 'モンスターエナジー（500ml）',      mg: 160 },
+    { cat: 'その他',           id: 'cola',         label: 'コーラ（350ml）',                 mg: 34  },
+    { cat: 'その他',           id: 'energy_drink', label: '栄養ドリンク（100ml）',           mg: 50  },
+  ],
+  en: [
+    { cat: 'Coffee',       id: 'drip',        label: 'Drip Coffee (240ml)',                 mg: 95  },
+    { cat: 'Coffee',       id: 'espresso',     label: 'Espresso (1 shot)',                  mg: 63  },
+    { cat: 'Coffee',       id: 'latte',        label: 'Café Latte / Cappuccino (240ml)',    mg: 63  },
+    { cat: 'Coffee',       id: 'instant',      label: 'Instant Coffee (240ml)',             mg: 60  },
+    { cat: 'Coffee',       id: 'convenience',  label: 'Convenience Store Coffee L (270ml)', mg: 130 },
+    { cat: 'Tea',          id: 'green_tea',    label: 'Green Tea (240ml)',                  mg: 48  },
+    { cat: 'Tea',          id: 'matcha_latte', label: 'Matcha Latte (240ml)',               mg: 70  },
+    { cat: 'Tea',          id: 'black_tea',    label: 'Black Tea (240ml)',                  mg: 72  },
+    { cat: 'Tea',          id: 'houjicha',     label: 'Hojicha (240ml)',                    mg: 48  },
+    { cat: 'Tea',          id: 'oolong',       label: 'Oolong Tea (240ml)',                 mg: 48  },
+    { cat: 'Energy Drink', id: 'redbull',      label: 'Red Bull (250ml)',                   mg: 80  },
+    { cat: 'Energy Drink', id: 'monster_355',  label: 'Monster Energy (355ml)',             mg: 114 },
+    { cat: 'Energy Drink', id: 'monster_500',  label: 'Monster Energy (500ml)',             mg: 160 },
+    { cat: 'Other',        id: 'cola',         label: 'Cola (350ml)',                       mg: 34  },
+    { cat: 'Other',        id: 'energy_drink', label: 'Energy Supplement (100ml)',          mg: 50  },
+  ],
+};
+
+let currentLang = 'ja';
+let DRINKS = DRINKS_I18N.ja;
+
+function buildSelect() {
+  const sel = document.getElementById('drinkSel');
+  const currentVal = sel.value;
+  while (sel.firstChild) sel.removeChild(sel.firstChild);
   const cats = [...new Set(DRINKS.map(d => d.cat))];
   cats.forEach(cat => {
     const grp = document.createElement('optgroup');
@@ -301,7 +360,29 @@ const DRINKS = [
     });
     sel.appendChild(grp);
   });
-})();
+  if (currentVal) sel.value = currentVal;
+}
+
+function applyLang(lang) {
+  DRINKS = DRINKS_I18N[lang];
+  const t = TEXTS[lang];
+  document.getElementById('langBtn').textContent          = t.langBtn;
+  document.getElementById('drinkLogLabel').textContent    = t.drinkLogLabel;
+  document.getElementById('addBtn').textContent           = t.addBtn;
+  document.getElementById('graphLabel').textContent       = t.graphLabel;
+  document.getElementById('badgeCurrentLabel').textContent  = t.badgeCurrentLabel;
+  document.getElementById('badgeMidnightLabel').textContent = t.badgeMidnightLabel;
+  document.getElementById('badge50mgLabel').textContent   = t.badge50mgLabel;
+  document.getElementById('aboutLabel').textContent       = t.aboutLabel;
+  document.getElementById('aboutText').textContent        = t.aboutText;
+  buildSelect();
+  renderLog();
+}
+
+document.getElementById('langBtn').addEventListener('click', () => {
+  currentLang = currentLang === 'ja' ? 'en' : 'ja';
+  applyLang(currentLang);
+});
 
 (function setDefaultTime() {
   const now = new Date();
@@ -344,16 +425,7 @@ const HALF_LIFE         = 5.5;
 const WINDOW_HALF_HOURS = 6;
 const WINDOW_SAMPLES    = 48;
 
-function caffeineAt(tHours) {
-  return entries.reduce((sum, e) => {
-    const ti = timeToHours(e.time);
-    if (tHours < ti) return sum;
-    return sum + e.mg * Math.pow(2, -(tHours - ti) / HALF_LIFE);
-  }, 0);
-}
-
 function caffeineAtContinuous(tHours) {
-  // 連続時間（24h制限なし）で評価。摂取イベントを±24h複製して24時跨ぎに対応
   return entries.reduce((sum, e) => {
     const ti0 = timeToHours(e.time);
     for (const ti of [ti0 - 24, ti0, ti0 + 24]) {
@@ -454,13 +526,13 @@ function updateGraph() {
   if (badge50mg && badge50mgVal) {
     const dropTime = find50mgTime(nowH);
     if (dropTime !== null) {
-      badge50mg.style.display    = '';
-      badge50mgVal.style.color   = '#f59e0b';
-      badge50mgVal.textContent   = hoursToHHMM(dropTime);
+      badge50mg.style.display  = '';
+      badge50mgVal.style.color = '#f59e0b';
+      badge50mgVal.textContent = hoursToHHMM(dropTime);
     } else if (caffeineAtContinuous(nowH) <= 50) {
-      badge50mg.style.display    = '';
-      badge50mgVal.style.color   = '#22c55e';
-      badge50mgVal.textContent   = '以下 ✓';
+      badge50mg.style.display  = '';
+      badge50mgVal.style.color = '#22c55e';
+      badge50mgVal.textContent = TEXTS[currentLang].badge50mgOk;
     } else {
       badge50mg.style.display = 'none';
     }
@@ -473,7 +545,7 @@ function addEntry() {
   if (!tPick.value) return;
   const drink = DRINKS.find(d => d.id === sel.value);
   if (!drink) return;
-  entries.push({ id: nextId++, drink: drink.id, label: drink.label, mg: drink.mg, time: tPick.value });
+  entries.push({ id: nextId++, drink: drink.id, mg: drink.mg, time: tPick.value });
   entries.sort((a, b) => timeToHours(a.time) - timeToHours(b.time));
   renderLog();
   updateGraph();
@@ -494,7 +566,7 @@ function renderLog() {
   if (entries.length === 0) {
     const empty = document.createElement('div');
     empty.className   = 'log-empty';
-    empty.textContent = 'まだ記録がありません';
+    empty.textContent = TEXTS[currentLang].logEmpty;
     list.appendChild(empty);
     return;
   }
@@ -504,7 +576,8 @@ function renderLog() {
     item.className = 'log-item';
 
     const info = document.createElement('span');
-    info.textContent = e.time + '  ' + e.label;
+    const drinkLabel = DRINKS.find(d => d.id === e.drink)?.label ?? e.drink;
+    info.textContent = e.time + '  ' + drinkLabel;
 
     const right = document.createElement('span');
 
@@ -546,17 +619,7 @@ function loadFromStorage() {
   nextId  = data.nextId ?? (entries.length ? Math.max(...entries.map(e => e.id)) + 1 : 1);
 }
 
-const ABOUT_TEXT = {
-  ja: 'ドリンクを記録するだけで、体内のカフェイン残量をリアルタイムに計算します。カフェインの半減期は約5.5時間。50mgの目安時刻を参考に、最後の一杯のタイミングを決めましょう。',
-  en: 'Log your drinks to instantly track how much caffeine remains in your body. Caffeine has a half-life of ~5.5 hours — use the 50 mg estimate to decide when to have your last cup.'
-};
-let aboutLang = 'ja';
-document.getElementById('aboutLangBtn').addEventListener('click', () => {
-  aboutLang = aboutLang === 'ja' ? 'en' : 'ja';
-  document.getElementById('aboutText').textContent  = ABOUT_TEXT[aboutLang];
-  document.getElementById('aboutLangBtn').textContent = aboutLang === 'ja' ? 'EN' : 'JA';
-});
-
+buildSelect();
 loadFromStorage();
 renderLog();
 updateGraph();
