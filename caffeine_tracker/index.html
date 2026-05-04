@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="google-site-verification" content="5QwFWb4EKUO-skKGpkIX3AEDFZ_8oZ8GhYos8KTK3Sc" />
   <title>カフェイン残量トラッカー</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -307,6 +308,7 @@ const TEXTS = {
     drinkLogLabel:     'DRINK LOG',
     addBtn:            '+ 追加',
     logEmpty:          'まだ記録がありません',
+    nowPrefix:         '現在',
     graphLabel:        'CAFFEINE LEVEL (mg)',
     badgeCurrentLabel: '現在 ',
     badge50mgLabel:    '50mgになる時刻 ',
@@ -320,6 +322,7 @@ const TEXTS = {
     drinkLogLabel:     'DRINK LOG',
     addBtn:            '+ Add',
     logEmpty:          'No entries yet',
+    nowPrefix:         'Now ',
     graphLabel:        'CAFFEINE LEVEL (mg)',
     badgeCurrentLabel: 'Now ',
     badge50mgLabel:    'Drops to 50mg ',
@@ -424,6 +427,7 @@ function applyLang(lang) {
   document.getElementById('aboutText').textContent        = t.aboutText;
   buildSelect();
   renderLog();
+  updateGraph();
 }
 
 document.getElementById('langBtn').addEventListener('click', () => {
@@ -744,7 +748,7 @@ function renderLog() {
       : e.mg;
 
     const remSpan = document.createElement('span');
-    remSpan.textContent = '現在' + rem + 'mg';
+    remSpan.textContent = TEXTS[currentLang].nowPrefix + rem + 'mg';
     remSpan.style.cssText = 'color:#e6edf3; font-size:12px; margin-right:4px;';
 
     const mgSpan = document.createElement('span');
