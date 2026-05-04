@@ -5,8 +5,9 @@
 競合となるインタラクティブなチェッカーはなく、SEOでニッチを狙える。
 
 ## ファイル構成
-- `index.html` — メインファイル（全コードが1ファイルに収まっている）。`projects/` リポジトリルートに置くことでVercelが自動デプロイする
-- `index_redesign.html` — リデザイン試作（和モダン×ブルータリスト、本番未使用）
+- `shimoza_checker/index.html` — メインファイル（全コードが1ファイルに収まっている）
+- `shimoza_checker/index_redesign.html` — リデザイン試作（和モダン×ブルータリスト、本番未使用）
+- `vercel.json` — ルートリクエストを `shimoza_checker/` にリライト
 
 ## 公開情報
 - **URL**: https://amiza-shimoza-checker.vercel.app
@@ -188,6 +189,28 @@ git push
 - `localDateStr()` でローカル日付を使用（JSTユーザーのUTCバグ回避）
 - `caffeineAtContinuous()`: 摂取イベントを±24h複製して24時跨ぎに対応
 - `TEXTS`オブジェクト + `applyLang(lang)` でi18n管理
+
+---
+
+# マウンテンタイマー（mountain_timer/）
+
+山のアニメーションシーンと連動するカウントダウンタイマー。単一HTMLファイル。
+
+## 公開情報
+- **URL**: https://mountain-timer.vercel.app
+- **GitHub**: https://github.com/hijiji2008-star/mountain-timer
+- **ホスティング**: Vercel（GitHubにpushすると自動デプロイ）
+
+## デプロイ方法
+```bash
+cd mountain_timer
+git add index.html
+git commit -m "変更内容"
+git push
+```
+
+## ファイル構成
+- `mountain_timer/index.html` — 単一HTMLファイル（Vanilla JS・外部依存なし）
 
 ---
 

@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/shimoza_checker/$1" }
+  ]
+}
