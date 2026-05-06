@@ -6,6 +6,13 @@
   <meta name="google-site-verification" content="5QwFWb4EKUO-skKGpkIX3AEDFZ_8oZ8GhYos8KTK3Sc" />
   <title>カフェイン残量トラッカー</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="カフェイン">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -194,17 +201,16 @@
     #centerTimeLabel {
       position: absolute;
       left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 12px;
-      letter-spacing: 1px;
-      color: #e6edf3;
-      background: rgba(13,17,23,0.55);
-      border: 1px solid rgba(48,54,61,0.7);
-      padding: 6px 10px;
+      top: 6px;
+      transform: translateX(-50%);
+      font-size: 9px;
+      letter-spacing: 0px;
+      color: rgba(230,237,243,0.95);
+      background: rgba(13,17,23,0.65);
+      border: 1px solid rgba(230,237,243,0.4);
+      padding: 2px 5px;
       border-radius: 999px;
       pointer-events: none;
-      backdrop-filter: blur(6px);
     }
 
     .badges {
@@ -435,6 +441,18 @@ document.getElementById('langBtn').addEventListener('click', () => {
   applyLang(currentLang);
 });
 
+let timePickUserEdited = false;
+
+function syncTimePick() {
+  if (timePickUserEdited) return;
+  const hourSel = document.getElementById('hourPick');
+  const minSel  = document.getElementById('minPick');
+  const now = new Date();
+  const rounded = Math.round((now.getHours() * 60 + now.getMinutes()) / 5) * 5;
+  hourSel.value = String(Math.floor(rounded / 60) % 24).padStart(2,'0');
+  minSel.value  = String(rounded % 60).padStart(2,'0');
+}
+
 (function buildTimePick() {
   const hourSel = document.getElementById('hourPick');
   const minSel  = document.getElementById('minPick');
@@ -448,10 +466,9 @@ document.getElementById('langBtn').addEventListener('click', () => {
     opt.value = opt.textContent = String(m).padStart(2,'0');
     minSel.appendChild(opt);
   }
-  const now = new Date();
-  const rounded = Math.round((now.getHours() * 60 + now.getMinutes()) / 5) * 5;
-  hourSel.value = String(Math.floor(rounded / 60) % 24).padStart(2,'0');
-  minSel.value  = String(rounded % 60).padStart(2,'0');
+  syncTimePick();
+  hourSel.addEventListener('change', () => { timePickUserEdited = true; });
+  minSel.addEventListener('change',  () => { timePickUserEdited = true; });
 })();
 
 let entries = [];
@@ -704,6 +721,8 @@ function addEntry() {
   renderLog();
   updateGraph();
   saveToStorage();
+  timePickUserEdited = false;
+  syncTimePick();
 }
 
 function deleteEntry(id) {
@@ -795,7 +814,14 @@ buildSelect();
 loadFromStorage();
 renderLog();
 updateGraph();
-setInterval(() => { try { updateGraph(); } catch (e) { console.error('updateGraph failed:', e); } }, 60_000);
+setInterval(() => {
+  try { updateGraph(); } catch (e) { console.error('updateGraph failed:', e); }
+  syncTimePick();
+}, 60_000);
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js');
+}
 </script>
 </body>
 </html>
